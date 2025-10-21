@@ -1,0 +1,99 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+/* Your provided color palette */
+:root {
+    --color-primary-bg: #1A1A2E; /* A very dark background for the body, derived from the palette */
+    --color-card-bg: #2B2E4A;    /* Slightly lighter for cards */
+    --color-border: #3E4260;    /* Darker border for contrast */
+    --color-text-primary: #E0E0EB; /* Light off-white for main text */
+    --color-text-secondary: #A0A0B0; /* Grayish for secondary text */
+    --color-accent-sky: #38BDF8; /* Your original sky blue, or replace with a palette accent */
+
+    /* Palette colors for reference, could be used for specific accents */
+    --palette-f8b195: #F8B195;
+    --palette-f67280: #F67280;
+    --palette-c06c84: #C06C84;
+    --palette-6c5b7b: #6C5B7B;
+    --palette-355c7d: #355C7D;
+}
+
+
+body {
+    font-family: 'Inter', sans-serif;
+    /* Use the darkest color from the palette for background */
+    background: var(--color-primary-bg);
+    color: var(--color-text-primary);
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+}
+
+/* Base card styling */
+.glass-card {
+    background: var(--color-card-bg); /* Use lighter dark for card backgrounds */
+    border: 1px solid var(--color-border); /* Darker border */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+/* Input field styling */
+input[type="text"] {
+    background-color: #3e4260; /* Slightly darker than card for input */
+    border-color: #555c7b; /* Border that stands out a bit */
+    color: var(--color-text-primary);
+}
+input[type="text"]::placeholder {
+    color: var(--color-text-secondary);
+}
+input[type="text"]:focus {
+    border-color: var(--color-accent-sky);
+    ring-color: var(--color-accent-sky);
+}
+
+/* Button styling */
+#generate-button {
+    background-color: var(--color-accent-sky); /* Use sky blue for main action */
+    color: var(--color-primary-bg); /* Dark text on light button */
+}
+#generate-button:hover {
+    background-color: #279dcc; /* Darken on hover */
+}
+
+/* Section headers in the report */
+.report-section h3 {
+    color: var(--palette-f67280); /* Use a palette color for accents */
+}
+
+/* Text color for lists and paragraphs */
+.report-section p, .report-section ul li {
+    color: var(--color-text-primary);
+}
+.report-section ul.list-disc li::marker {
+    color: var(--palette-f8b195); /* Bullet point color */
+}
+
+/* Loading spinner color */
+#loader svg {
+    color: var(--palette-f8b195); /* Use a palette color for the spinner */
+}
+
+/* Error message styling */
+#error-message {
+    background-color: rgba(246, 114, 128, 0.1); /* Light red background */
+    border-color: var(--palette-f67280); /* Red border */
+    color: var(--palette-f67280); /* Red text */
+}
+
+/* Customizing scrollbar for the output (if needed for individual sections) */
+.output-section-content::-webkit-scrollbar {
+    width: 6px;
+}
+.output-section-content::-webkit-scrollbar-track {
+    background: var(--color-card-bg);
+    border-radius: 10px;
+}
+.output-section-content::-webkit-scrollbar-thumb {
+    background-color: var(--color-accent-sky);
+    border-radius: 10px;
+}

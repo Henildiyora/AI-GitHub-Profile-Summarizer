@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI GitHub Profile Analyzer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+</head>
+<body class="text-gray-200 flex items-center justify-center min-h-screen p-4">
+
+    <div class="w-full max-w-5xl mx-auto"> <div class="text-center mb-6">
+            <h1 class="text-4xl font-extrabold text-white">AI GitHub Profile Analyzer</h1>
+            <p class="text-lg text-gray-400 mt-2">Get a senior-level technical review of any GitHub profile.</p>
+        </div>
+
+        <div class="glass-card p-6 rounded-2xl shadow-2xl mb-6">
+            <div class="flex flex-col sm:flex-row items-center gap-4">
+                <input type="text" id="username-input" class="flex-grow w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="e.g., torvalds or https://github.com/torvalds">
+                <button id="generate-button" class="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                    <ion-icon name="analytics-outline" class="text-xl"></ion-icon>
+                    Analyze
+                </button>
+            </div>
+        </div>
+
+        <div id="result-container" class="mt-6 hidden">
+            
+            <div id="loader" class="text-center p-8 glass-card rounded-2xl hidden">
+                <svg class="animate-spin h-10 w-10 text-sky-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="mt-4 text-lg text-gray-300">Analyzing repositories... this may take a moment.</p>
+            </div>
+             
+            <div id="error-message" class="text-red-400 bg-red-900/50 border border-red-700 p-4 rounded-lg text-center hidden"></div>
+             
+            <div id="summary-output-card" class="glass-card rounded-2xl shadow-2xl overflow-hidden hidden">
+                <div class="p-6">
+                    <h2 class="text-2xl font-bold text-white mb-6">Technical Analysis Report</h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output"> </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const usernameInput = document.getElementById('username-input');
+        const generateButton = document.getElementById('generate-button');
+        const resultContainer = document.getElementById('result-container');
+        const loader = document.getElementById('loader');
+        const errorMessage = document.getElementById('error-message');
+        const summaryOutputCard = document.getElementById('summary-output-card');
+        const summaryOutput = document.getElementById('summary-output');
+
+        const cleanUsername = (input) => {
+            try {
+                if (input.startsWith('http') || input.includes('github.com')) {
+                    const url = new URL(input);
+                    return url.pathname.split('/')[1];
+                }
+            } catch (error) {}
+            return input.trim().split('/')[0];
+        };
+
+        const handleGenerateClick = async () => {
+            const rawInput = usernameInput.value;
+            const username = cleanUsername(rawInput); 
+
+            if (!username) {
+                showError("Please enter a GitHub username.");
+                return;
+            }
+
+            resultContainer.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            summaryOutputCard.classList.add('hidden');
+            summaryOutput.innerHTML = '';
+            generateButton.disabled = true;
+            generateButton.innerHTML = `<ion-icon name="ellipsis-horizontal-outline" class="text-xl animate-pulse"></ion-icon> Analyzing...`;
+
+            try {
+                const response = await fetch('/summarize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: username }),
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                displaySummary(data); 
+
+            } catch (error) { 
+                showError(error.message);
+            } finally {
+                loader.classList.add('hidden');
+                generateButton.disabled = false;
+                generateButton.innerHTML = '<ion-icon name="analytics-outline" class="text-xl"></ion-icon> Analyze';
+            }
+        };
+
+        const showError = (message) => {
+            errorMessage.textContent = `Error: ${message}`;
+            errorMessage.classList.remove('hidden');
+            summaryOutputCard.classList.add('hidden');
+        };
+
+        const displaySummary = (data) => {
+            summaryOutput.innerHTML = ''; 
+            
+            const createList = (items) => {
+                if (!items || items.length === 0) return '<p class="text-gray-400">N/A</p>';
+                return `<ul class="list-disc list-inside text-gray-300 space-y-1">
+                    ${items.map(item => `<li class="ml-4">${item}</li>`).join('')}
+                </ul>`;
+            };
+
+            const createSection = (title, icon, content, fullWidth = false) => {
+                return `
+                <div class="report-section ${fullWidth ? 'md:col-span-2' : ''} glass-card p-4 rounded-lg">
+                    <h3 class="flex items-center gap-2 text-lg font-semibold mb-2">
+                        <ion-icon name="${icon}"></ion-icon>
+                        ${title}
+                    </h3>
+                    <div class="output-section-content">${content}</div>
+                </div>
+                `;
+            };
+
+            // Inject sections into the grid
+            summaryOutput.innerHTML += createSection(
+                'Overall Summary', 
+                'person-circle-outline', 
+                `<p class="text-gray-300 whitespace-pre-wrap">${data.summary || 'No summary provided.'}</p>`,
+                true // Make overall summary full width
+            );
+
+            summaryOutput.innerHTML += createSection(
+                'Key Technologies', 
+                'code-slash-outline', 
+                createList(data.technologies)
+            );
+
+            summaryOutput.innerHTML += createSection(
+                'Identified Strengths', 
+                'shield-checkmark-outline', 
+                createList(data.strengths)
+            );
+
+            summaryOutput.innerHTML += createSection(
+                'Areas for Growth', 
+                'trending-up-outline', 
+                createList(data.growth_areas)
+            );
+
+            summaryOutput.innerHTML += createSection(
+                'Suggested Interview Questions', 
+                'chatbubble-ellipses-outline', 
+                createList(data.interview_questions)
+            );
+
+            summaryOutputCard.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+        };
+
+        generateButton.addEventListener('click', handleGenerateClick);
+        usernameInput.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                handleGenerateClick();
+            }
+        });
+    </script>
+</body>
+</html>
