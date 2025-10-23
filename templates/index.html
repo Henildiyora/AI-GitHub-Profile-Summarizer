@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI GitHub Profile Analyzer</title>
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <title>AI Candidate Screener</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/styles.css">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
@@ -11,17 +11,33 @@
 </head>
 <body class="text-gray-200 flex items-center justify-center min-h-screen p-4">
 
-    <div class="w-full max-w-5xl mx-auto"> <div class="text-center mb-6">
-            <h1 class="text-4xl font-extrabold text-white">AI GitHub Profile Analyzer</h1>
-            <p class="text-lg text-gray-400 mt-2">Get a senior-level technical review of any GitHub profile.</p>
+    <div class="w-full max-w-5xl mx-auto"> 
+        <div class="text-center mb-6">
+            <h1 class="text-4xl font-extrabold text-white">AI Candidate Screener</h1>
+            <p class="text-lg text-gray-400 mt-2">Analyze a GitHub profile against a Job Description.</p>
         </div>
 
         <div class="glass-card p-6 rounded-2xl shadow-2xl mb-6">
-            <div class="flex flex-col sm:flex-row items-center gap-4">
-                <input type="text" id="username-input" class="flex-grow w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="e.g., torvalds or https://github.com/torvalds">
-                <button id="generate-button" class="w-full sm:w-auto bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+            <div class="space-y-4">
+                
+                <div>
+                    <label for="username-input" class="block text-sm font-medium text-gray-300 mb-1">GitHub Username</label>
+                    <input type="text" id="username-input" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="e.g., torvalds">
+                </div>
+                
+                <div>
+                    <label for="jd-input" class="block text-sm font-medium text-gray-300 mb-1">Job Description</label>
+                    <textarea id="jd-input" rows="8" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Paste the full job description here..."></textarea>
+                </div>
+
+                <div>
+                    <label for="resume-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's Resume (PDF)</label>
+                    <input type="file" id="resume-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer">
+                </div>
+
+                <button id="generate-button" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
                     <ion-icon name="analytics-outline" class="text-xl"></ion-icon>
-                    Analyze
+                    Analyze Candidate Fit
                 </button>
             </div>
         </div>
@@ -33,29 +49,41 @@
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <p class="mt-4 text-lg text-gray-300">Analyzing repositories... this may take a moment.</p>
+                <p class="mt-4 text-lg text-gray-300">Analyzing candidate fit... this may take a moment.</p>
             </div>
-             
+     
             <div id="error-message" class="text-red-400 bg-red-900/50 border border-red-700 p-4 rounded-lg text-center hidden"></div>
-             
+     
             <div id="summary-output-card" class="glass-card rounded-2xl shadow-2xl overflow-hidden hidden">
                 <div class="p-6">
-                    <h2 class="text-2xl font-bold text-white mb-6">Technical Analysis Report</h2>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output"> </div>
-                </div>
+                    <h2 class="text-2xl font-bold text-white mb-6">Candidate Fit Report</h2>
+                    
+                    <div class="text-center mb-6">
+                        <div id="fit-score-circle" class="relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white bg-gradient-to-br from-sky-500 to-sky-700 rounded-full shadow-lg">
+                            </div>
+                        <p class="mt-2 text-lg text-gray-300">Overall Fit Score</p>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output">
+                        </div>
             </div>
         </div>
     </div>
+    
 
     <script>
         const usernameInput = document.getElementById('username-input');
+        const jdInput = document.getElementById('jd-input');
+        const resumeFile = document.getElementById('resume-file');
         const generateButton = document.getElementById('generate-button');
         const resultContainer = document.getElementById('result-container');
         const loader = document.getElementById('loader');
         const errorMessage = document.getElementById('error-message');
         const summaryOutputCard = document.getElementById('summary-output-card');
         const summaryOutput = document.getElementById('summary-output');
+        const fitScoreCircle = document.getElementById('fit-score-circle');
 
+        // cleanUsername function
         const cleanUsername = (input) => {
             try {
                 if (input.startsWith('http') || input.includes('github.com')) {
@@ -66,12 +94,28 @@
             return input.trim().split('/')[0];
         };
 
+        // handleGenerateClick
         const handleGenerateClick = async () => {
             const rawInput = usernameInput.value;
             const username = cleanUsername(rawInput); 
+            const jobDescription = jdInput.value;
+            const file = resumeFile.files[0];
 
+            // Add validation for all fields
             if (!username) {
                 showError("Please enter a GitHub username.");
+                return;
+            }
+            if (!jobDescription) { 
+                showError("Please enter a Job Description.");
+                return;
+            }
+            if (!file) { 
+                showError("Please upload a PDF resume.");
+                return;
+            }
+            if (file.type !== "application/pdf") { 
+                showError("Please upload a PDF file only.");
                 return;
             }
 
@@ -83,11 +127,18 @@
             generateButton.disabled = true;
             generateButton.innerHTML = `<ion-icon name="ellipsis-horizontal-outline" class="text-xl animate-pulse"></ion-icon> Analyzing...`;
 
+            // Use FormData instead of JSON
+            const formData = new FormData();
+            formData.append('username', username);
+            formData.append('job_description', jobDescription);
+            formData.append('resume_file', file);
+
             try {
+                // Fetch body and headers
                 const response = await fetch('/summarize', {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: username }),
+                    // DO NOT set Content-Type header, browser does it for FormData
+                    body: formData,
                 });
 
                 if (!response.ok) {
@@ -96,33 +147,46 @@
                 }
 
                 const data = await response.json();
-                displaySummary(data); 
+                displaySummary(data);
 
             } catch (error) { 
                 showError(error.message);
             } finally {
                 loader.classList.add('hidden');
                 generateButton.disabled = false;
-                generateButton.innerHTML = '<ion-icon name="analytics-outline" class="text-xl"></ion-icon> Analyze';
+                generateButton.innerHTML = '<ion-icon name="analytics-outline" class="text-xl"></ion-icon> Analyze Candidate Fit';
             }
         };
 
+        // showError function
         const showError = (message) => {
             errorMessage.textContent = `Error: ${message}`;
             errorMessage.classList.remove('hidden');
             summaryOutputCard.classList.add('hidden');
         };
 
+        // displaySummary function
         const displaySummary = (data) => {
-            summaryOutput.innerHTML = ''; 
+            summaryOutput.innerHTML = '';
             
-            const createList = (items) => {
+            // Update Fit Score
+            fitScoreCircle.innerHTML = `${data.fit_score || 0}%`;
+            fitScoreCircle.className = 'relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white rounded-full shadow-lg bg-gradient-to-br';
+            if (data.fit_score < 50) {
+                fitScoreCircle.classList.add('from-red-500', 'to-red-700');
+            } else if (data.fit_score < 75) {
+                fitScoreCircle.classList.add('from-yellow-500', 'to-yellow-700');
+            } else {
+                fitScoreCircle.classList.add('from-sky-500', 'to-sky-700');
+            }
+
+            // Helper Functions
+            const createList = (items, color = 'text-gray-300') => {
                 if (!items || items.length === 0) return '<p class="text-gray-400">N/A</p>';
-                return `<ul class="list-disc list-inside text-gray-300 space-y-1">
+                return `<ul class="list-disc list-inside ${color} space-y-1">
                     ${items.map(item => `<li class="ml-4">${item}</li>`).join('')}
                 </ul>`;
             };
-
             const createSection = (title, icon, content, fullWidth = false) => {
                 return `
                 <div class="report-section ${fullWidth ? 'md:col-span-2' : ''} glass-card p-4 rounded-lg">
@@ -135,32 +199,28 @@
                 `;
             };
 
-            // Inject sections into the grid
+            // Inject new report sections
             summaryOutput.innerHTML += createSection(
                 'Overall Summary', 
                 'person-circle-outline', 
                 `<p class="text-gray-300 whitespace-pre-wrap">${data.summary || 'No summary provided.'}</p>`,
-                true // Make overall summary full width
+                true
             );
-
             summaryOutput.innerHTML += createSection(
-                'Key Technologies', 
-                'code-slash-outline', 
-                createList(data.technologies)
-            );
-
-            summaryOutput.innerHTML += createSection(
-                'Identified Strengths', 
+                'Role Strengths', 
                 'shield-checkmark-outline', 
-                createList(data.strengths)
+                createList(data.role_strengths, 'text-green-300')
             );
-
             summaryOutput.innerHTML += createSection(
-                'Areas for Growth', 
-                'trending-up-outline', 
-                createList(data.growth_areas)
+                'Role Weaknesses', 
+                'trending-down-outline',
+                createList(data.role_weaknesses, 'text-yellow-300')
             );
-
+            summaryOutput.innerHTML += createSection(
+                'Red Flags', 
+                'flag-outline',
+                createList(data.red_flags, 'text-red-300')
+            );
             summaryOutput.innerHTML += createSection(
                 'Suggested Interview Questions', 
                 'chatbubble-ellipses-outline', 
@@ -174,7 +234,7 @@
         generateButton.addEventListener('click', handleGenerateClick);
         usernameInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {
-                handleGenerateClick();
+                // document.getElementById('jd-input').focus();
             }
         });
     </script>

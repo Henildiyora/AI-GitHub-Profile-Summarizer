@@ -1,60 +1,102 @@
 import httpx
 import os
 from typing import List, Dict, Any, Optional
+import base64
 
-# Get the tockens from env file
-GITHUB_API_URL = "https://api.github.com"
-GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
-
-# Set up headers for authentication. This increases the rate limit.
-HEADERS = {
-    "Accept": "application/vnd.github.v3+json",
-    "Authorization": f"token {GITHUB_TOKEN}"
-}
-
-async def get_user_profile(username: str) -> Optional[Dict[str, Any]]:
+class GitHubClient:
     """
-    Fetches the public profile information for a given GitHub username.
-    Uses an async HTTP client for non-blocking network calls.
+    A client for interacting with the GitHub REST API.
+
+    Handles fetching user profiles, repositories, and README files.
+    
+    Attributes:
+        GITHUB_API_URL (str): The base URL for the GitHub API.
+        HEADERS (dict): Authentication headers using the GITHUB_TOKEN.
     """
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{GITHUB_API_URL}/users/{username}", headers=HEADERS)
-            response.raise_for_status()  
-            return response.json()
-        except httpx.HTTPStatusError:
-            return None 
+    
+    GITHUB_API_URL = "https://api.github.com"
+    GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
+    
+    HEADERS = {
+        "Accept": "application/vnd.github.v3+json",
+        "Authorization": f"token {GITHUB_TOKEN}"
+    }
+
+    async def get_user_profile(self, username: str) -> Optional[Dict[str, Any]]:
+        """
+        Fetches the public profile information for a given GitHub username.
+
+        Args:
+            username (str): The GitHub username to query.
+
+        Returns:
+            Optional[Dict[str, Any]]: A dictionary containing the user's
+                profile data, or None if the user is not found.
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                    f"{self.GITHUB_API_URL}/users/{username}", 
+                    headers=self.HEADERS
+                )
+                response.raise_for_status()  
+                return response.json()
+            except httpx.HTTPStatusError:
+                return None 
         
-async def get_user_repos(username: str) -> List[Dict[str,any]]:
-    """
-    Fetches the repositories for a given GitHub username.
-    Sorts repos by stars and returns the top ones.
-    """
-    async with httpx.AsyncClient() as client:
-        # Fetch repos, sort by stars, get the top 10
-        params = {'sort': 'stargazers_count', 'per_page': 10, 'direction': 'desc'}
-        try:
-            response = await client.get(f"{GITHUB_API_URL}/users/{username}/repos", headers=HEADERS, params=params)
-            response.raise_for_status()
-            return response.json()
-        except httpx.HTTPStatusError:
-            return [] 
+    async def get_user_repos(self, username: str) -> List[Dict[str, Any]]:
+        """
+        Fetches the repositories for a given GitHub username.
 
-async def get_readme_content(username: str, repo_name: str) -> Optional[str]:
-    """
-    Fetches the content of the README.md file for a specific repository.
-    The content is returned as a base64 encoded string, so we need to decode it.
-    """
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{GITHUB_API_URL}/repos/{username}/{repo_name}/readme", headers=HEADERS)
-            response.raise_for_status()
-            # The content is in base64, so we need to decode it
-            readme_data = response.json()
-            import base64
-            # Use httpx to get the content from the download_url to handle large files
-            content_response = await client.get(readme_data['download_url'])
-            return content_response.text
-        except (httpx.HTTPStatusError, KeyError):
-            # If README doesn't exist or there's an error, return None
-            return None
+        Sorts repos by stars and returns the top 10.
+
+        Args:
+            username (str): The GitHub username to query.
+
+        Returns:
+            List[Dict[str, Any]]: A list of repository data dictionaries.
+                Returns an empty list if an error occurs.
+        """
+        async with httpx.AsyncClient() as client:
+            params = {'sort': 'stargazers_count', 'per_page': 10, 'direction': 'desc'}
+            try:
+                response = await client.get(
+                    f"{self.GITHUB_API_URL}/users/{username}/repos", 
+                    headers=self.HEADERS, 
+                    params=params
+                )
+                response.raise_for_status()
+                return response.json()
+            except httpx.HTTPStatusError:
+                return [] 
+
+    async def get_readme_content(self, username: str, repo_name: str) -> Optional[str]:
+        """
+        Fetches the decoded content of the README.md file for a repository.
+
+        Args:
+            username (str): The GitHub username (owner) of the repo.
+            repo_name (str): The name of the repository.
+
+        Returns:
+            Optional[str]: The decoded (UTF-8) text content of the
+                README file, or None if not found.
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                # 1. Get the README metadata (which includes download_url)
+                response = await client.get(
+                    f"{self.GITHUB_API_URL}/repos/{username}/{repo_name}/readme", 
+                    headers=self.HEADERS
+                )
+                response.raise_for_status()
+                readme_data = response.json()
+                
+                # 2. Fetch the raw content from the download_url
+                # This avoids base64 decoding issues and handles large files
+                content_response = await client.get(readme_data['download_url'])
+                return content_response.text
+            
+            except (httpx.HTTPStatusError, KeyError):
+                # If README doesn't exist or there's an error, return None
+                return None
