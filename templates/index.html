@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Candidate Screener</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/styles.css">
@@ -14,7 +14,7 @@
     <div class="w-full max-w-5xl mx-auto"> 
         <div class="text-center mb-6">
             <h1 class="text-4xl font-extrabold text-white">AI Candidate Screener</h1>
-            <p class="text-lg text-gray-400 mt-2">Analyze a GitHub profile against a Job Description.</p>
+            <p class="text-lg text-gray-400 mt-2">Analyze a candidate's GitHub, Resume, and (optionally) LinkedIn.</p>
         </div>
 
         <div class="glass-card p-6 rounded-2xl shadow-2xl mb-6">
@@ -31,8 +31,14 @@
                 </div>
 
                 <div>
-                    <label for="resume-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's Resume (PDF)</label>
+                    <label for="resume-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's Resume (PDF) <span class="text-red-400">*</span></label>
                     <input type="file" id="resume-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer">
+                </div>
+                
+                <div>
+                    <label for="linkedin-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's LinkedIn (PDF) - Optional</label>
+                    <input type="file" id="linkedin-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer" aria-describedby="linkedin-help">
+                    <p id="linkedin-help" class="mt-1 text-xs text-gray-400">On their profile: Click "More" > "Save to PDF".</p>
                 </div>
 
                 <button id="generate-button" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
@@ -43,7 +49,6 @@
         </div>
 
         <div id="result-container" class="mt-6 hidden">
-            
             <div id="loader" class="text-center p-8 glass-card rounded-2xl hidden">
                 <svg class="animate-spin h-10 w-10 text-sky-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -51,30 +56,28 @@
                 </svg>
                 <p class="mt-4 text-lg text-gray-300">Analyzing candidate fit... this may take a moment.</p>
             </div>
-     
             <div id="error-message" class="text-red-400 bg-red-900/50 border border-red-700 p-4 rounded-lg text-center hidden"></div>
-     
             <div id="summary-output-card" class="glass-card rounded-2xl shadow-2xl overflow-hidden hidden">
                 <div class="p-6">
                     <h2 class="text-2xl font-bold text-white mb-6">Candidate Fit Report</h2>
-                    
                     <div class="text-center mb-6">
                         <div id="fit-score-circle" class="relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white bg-gradient-to-br from-sky-500 to-sky-700 rounded-full shadow-lg">
                             </div>
                         <p class="mt-2 text-lg text-gray-300">Overall Fit Score</p>
                     </div>
-                    
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output">
-                        </div>
+                         </div>
+                </div>
             </div>
         </div>
     </div>
-    
 
     <script>
+        // Add linkedinFile selector
         const usernameInput = document.getElementById('username-input');
         const jdInput = document.getElementById('jd-input');
         const resumeFile = document.getElementById('resume-file');
+        const linkedinFile = document.getElementById('linkedin-file');
         const generateButton = document.getElementById('generate-button');
         const resultContainer = document.getElementById('result-container');
         const loader = document.getElementById('loader');
@@ -99,9 +102,10 @@
             const rawInput = usernameInput.value;
             const username = cleanUsername(rawInput); 
             const jobDescription = jdInput.value;
-            const file = resumeFile.files[0];
+            const resFile = resumeFile.files[0];
+            const liFile = linkedinFile.files[0]; 
 
-            // Add validation for all fields
+    
             if (!username) {
                 showError("Please enter a GitHub username.");
                 return;
@@ -110,12 +114,17 @@
                 showError("Please enter a Job Description.");
                 return;
             }
-            if (!file) { 
+            if (!resFile) { 
                 showError("Please upload a PDF resume.");
                 return;
             }
-            if (file.type !== "application/pdf") { 
-                showError("Please upload a PDF file only.");
+            if (resFile.type !== "application/pdf") {
+                 showError("Please make sure the resume file is a PDF.");
+                 return;
+            }
+
+            if (liFile && liFile.type !== "application/pdf") {
+                showError("Please make sure the LinkedIn file is a PDF.");
                 return;
             }
 
@@ -127,17 +136,20 @@
             generateButton.disabled = true;
             generateButton.innerHTML = `<ion-icon name="ellipsis-horizontal-outline" class="text-xl animate-pulse"></ion-icon> Analyzing...`;
 
-            // Use FormData instead of JSON
+            // Use FormData to include optional LinkedIn file
             const formData = new FormData();
             formData.append('username', username);
             formData.append('job_description', jobDescription);
-            formData.append('resume_file', file);
+            formData.append('resume_file', resFile);
+            
+            // Only append LinkedIn file if it exists
+            if (liFile) {
+                formData.append('linkedin_file', liFile);
+            }
 
             try {
-                // Fetch body and headers
                 const response = await fetch('/summarize', {
                     method: 'POST',
-                    // DO NOT set Content-Type header, browser does it for FormData
                     body: formData,
                 });
 
@@ -167,9 +179,9 @@
 
         // displaySummary function
         const displaySummary = (data) => {
-            summaryOutput.innerHTML = '';
+            summaryOutput.innerHTML = ''; 
             
-            // Update Fit Score
+            // 1. Update Fit Score
             fitScoreCircle.innerHTML = `${data.fit_score || 0}%`;
             fitScoreCircle.className = 'relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white rounded-full shadow-lg bg-gradient-to-br';
             if (data.fit_score < 50) {
@@ -180,7 +192,7 @@
                 fitScoreCircle.classList.add('from-sky-500', 'to-sky-700');
             }
 
-            // Helper Functions
+            // 2. Helper Functions
             const createList = (items, color = 'text-gray-300') => {
                 if (!items || items.length === 0) return '<p class="text-gray-400">N/A</p>';
                 return `<ul class="list-disc list-inside ${color} space-y-1">
@@ -199,38 +211,18 @@
                 `;
             };
 
-            // Inject new report sections
-            summaryOutput.innerHTML += createSection(
-                'Overall Summary', 
-                'person-circle-outline', 
-                `<p class="text-gray-300 whitespace-pre-wrap">${data.summary || 'No summary provided.'}</p>`,
-                true
-            );
-            summaryOutput.innerHTML += createSection(
-                'Role Strengths', 
-                'shield-checkmark-outline', 
-                createList(data.role_strengths, 'text-green-300')
-            );
-            summaryOutput.innerHTML += createSection(
-                'Role Weaknesses', 
-                'trending-down-outline',
-                createList(data.role_weaknesses, 'text-yellow-300')
-            );
-            summaryOutput.innerHTML += createSection(
-                'Red Flags', 
-                'flag-outline',
-                createList(data.red_flags, 'text-red-300')
-            );
-            summaryOutput.innerHTML += createSection(
-                'Suggested Interview Questions', 
-                'chatbubble-ellipses-outline', 
-                createList(data.interview_questions)
-            );
+            // 3. Inject report sections
+            summaryOutput.innerHTML += createSection('Overall Summary', 'person-circle-outline', `<p class="text-gray-300 whitespace-pre-wrap">${data.summary || 'No summary provided.'}</p>`, true);
+            summaryOutput.innerHTML += createSection('Role Strengths', 'shield-checkmark-outline', createList(data.role_strengths, 'text-green-300'));
+            summaryOutput.innerHTML += createSection('Role Weaknesses', 'trending-down-outline', createList(data.role_weaknesses, 'text-yellow-300'));
+            summaryOutput.innerHTML += createSection('Red Flags', 'flag-outline', createList(data.red_flags, 'text-red-300'));
+            summaryOutput.innerHTML += createSection('Suggested Interview Questions', 'chatbubble-ellipses-outline', createList(data.interview_questions));
 
             summaryOutputCard.classList.remove('hidden');
             errorMessage.classList.add('hidden');
         };
 
+        // Event Listeners
         generateButton.addEventListener('click', handleGenerateClick);
         usernameInput.addEventListener('keypress', (event) => {
             if (event.key === 'Enter') {

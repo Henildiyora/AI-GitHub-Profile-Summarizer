@@ -6,10 +6,12 @@ from fastapi import FastAPI, HTTPException, Form, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import asyncio
 import io
 from pypdf import PdfReader
+import hashlib
+import json
 
 # Import the new classes from our client modules
 from app.github_client import GitHubClient
@@ -28,6 +30,8 @@ app = FastAPI()
 # class SummaryRequest(BaseModel):
 #     username: str
 #     job_description: str
+
+ANALYSIS_CACHE: Dict[str, Any] = {}
 
 class FitReportResponse(BaseModel):
     fit_score: int
@@ -87,7 +91,8 @@ async def read_root():
 async def get_github_summary(
     username: str = Form(...),
     job_description: str = Form(...),
-    resume_file: UploadFile = File(...)
+    resume_file: UploadFile = File(...),
+    linkedin_file: Optional[UploadFile] = File(None)
 ):
     """
         Main API endpoint to generate a candidate fit report.
@@ -114,6 +119,15 @@ async def get_github_summary(
         # Read and parse the resume 
         resume_contents = await resume_file.read()
         resume_text = parse_pdf_resume(resume_contents)
+
+        linkedin_text: Optional[str] = None
+        if linkedin_file:
+            if linkedin_file.content_type != "application/pdf":
+                raise HTTPException(status_code=400, detail="LinkedIn file must be a PDF.")
+            linkedin_contents = await linkedin_file.read()
+            linkedin_text = parse_pdf_resume(linkedin_contents)
+
+
         if not resume_text:
             raise HTTPException(status_code=400, detail="Could not extract text from PDF. The file might be empty or image-based.")
 
@@ -136,13 +150,32 @@ async def get_github_summary(
         # Create a dictionary mapping repo name to its README content
         readmes = {repo['name']: content for repo, content in zip(top_repos, readme_contents) if content}
 
+        # Create a unique key based on ALL data being sent to the LLM
+        profile_str = json.dumps(profile, sort_keys=True)
+        repos_str = json.dumps(top_repos, sort_keys=True)
+        readmes_str = json.dumps(readmes, sort_keys=True)
+        
+        key_string = (
+            f"{job_description}:{resume_text}:{linkedin_text}:"
+            f"{profile_str}:{repos_str}:{readmes_str}"
+        )
+        cache_key = hashlib.md5(key_string.encode('utf-8')).hexdigest()
+
+        # Check cache
+        if cache_key in ANALYSIS_CACHE:
+            print(f"--- Returning cached result for key: {cache_key} ---")
+            return ANALYSIS_CACHE[cache_key]
+        
+        print(f"--- Generating new report. Cache key: {cache_key} ---")
+
         # Generate the structured summary using the LLM
         summary_data = await llm_client.generate_summary_from_github_data(
             profile = profile,
             repos = top_repos,
             readmes = readmes,
             job_description = job_description,
-            resume_text = resume_text
+            resume_text = resume_text,
+            linkedin_text = linkedin_text
         )
 
         if "error" in summary_data:

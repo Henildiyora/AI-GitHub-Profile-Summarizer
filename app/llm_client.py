@@ -1,7 +1,7 @@
 import os
 import google.generativeai as genai
 import json
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 class LLMClient:
     """
@@ -17,27 +17,28 @@ class LLMClient:
     """
     
     SYSTEM_PROMPT = """
-        You are an expert technical recruiter and senior engineering manager.
-        Your task is to analyze a candidate's GitHub profile AND their resume
-        against a specific job description (JD).
-        
-        You must provide a ruthless, objective, and concise analysis by
-        comparing the candidate's *claimed* experience (from the resume)
-        with their *proven* experience (from their GitHub projects).
+    You are an expert technical recruiter and senior engineering manager.
+    Your task is to analyze a candidate's professional profile
+    against a specific job description (JD).
+    
+    You must provide a ruthless, objective, and concise analysis by
+    comparing the candidate's *claimed* experience (from Resume/LinkedIn)
+    with their *proven* experience (from their GitHub projects).
 
-        The user will provide:
-        1. A Job Description.
-        2. The candidate's Resume text.
-        3. The candidate's GitHub profile data (bio, top repos, READMEs).
+    The user will provide:
+    1. A Job Description.
+    2. The candidate's Resume text.
+    3. The candidate's GitHub profile data.
+    4. (Optionally) The candidate's LinkedIn Profile text.
 
-        You MUST return a JSON object with the following exact structure:
-        {
-          "fit_score": <int, a percentage score from 0 to 100 representing how well the GitHub profile AND resume match the JD>,
-          "summary": "<string, a 5-6 sentence summary of the candidate's fit. Highlight any matches or mismatches between the resume and GitHub.>",
-          "role_strengths": [<string, a list of strengths specific to the JD, citing evidence from both resume and GitHub>],
-          "role_weaknesses": [<string, a list of weaknesses or gaps based on the JD>],
-          "red_flags": [<string, a list of any potential red flags (e.g., 'Claims 5 years of Python on resume but GitHub shows no Python projects')>],
-          "interview_questions": [<string, a list of 3-5 sharp, targeted interview questions. (e.g., 'Your resume lists proficiency in AWS, but your GitHub projects don't seem to use it. Can you describe your experience there?')>]
+    You MUST return a JSON object with the following exact structure:
+    {
+      "fit_score": <int, a percentage score from 0 to 100 based on all available data>,
+      "summary": "<string, a 5-6 sentence summary. Highlight any matches or mismatches between the provided documents (Resume, GitHub, and LinkedIn if available).>",
+      "role_strengths": [<string, a list of strengths specific to the JD, citing evidence from all data sources>],
+      "role_weaknesses": [<string, a list of weaknesses or gaps based on the JD>],
+      "red_flags": [<string, a list of any potential red flags (e.g., 'Claims 5 years of Python on resume but GitHub shows no Python projects', 'LinkedIn title is "Staff" but resume/GitHub projects look Junior')>],
+      "interview_questions": [<string, a list of 3-5 sharp, targeted interview questions (e.g., 'Your LinkedIn and resume both list AWS, but your GitHub projects don't seem to use it. Can you describe your experience there?')>]
     }
     """
 
@@ -64,7 +65,8 @@ class LLMClient:
             repos: list, 
             readmes: dict,
             job_description: str,
-            resume_text: str
+            resume_text: str,
+            linkedin_text: Optional[str] = None
         ) -> Dict[str, Any]:
         """
         Generates a structured JSON fit report using the Gemini API.
@@ -103,19 +105,29 @@ class LLMClient:
             github_context += f"README Summary (first 1500 chars): {readme[:1500]}\n"
             github_context += f"---\n"
 
-        user_message = f"""
-          JOB DESCRIPTION
-          {job_description}
+        user_message_segments = [
+            "--- JOB DESCRIPTION ---",
+            job_description,
+            "--- CANDIDATE RESUME TEXT ---",
+            resume_text
+        ]
 
-          CANDIDATE RESUME DATA
-          {resume_text}
-          
-          CANDIDATE GITHUB DATA
-          {github_context}
-          
-          --- ANALYSIS ---
-          Please generate the JSON fit report based on the rules.
-        """
+        # Add LinkedIn text ONLY if it exists
+        if linkedin_text:
+            user_message_segments.extend([
+                "--- CANDIDATE LINKEDIN TEXT ---",
+                linkedin_text
+            ])
+            
+        # Add the final required parts
+        user_message_segments.extend([
+            "--- CANDIDATE GITHUB DATA ---",
+            github_context,
+            "--- ANALYSIS ---",
+            "Please generate the JSON fit report based on the rules."
+        ])
+
+        user_message = "\n\n".join(user_message_segments)
 
         # 2. Call the Gemini API
         try:
