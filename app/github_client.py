@@ -84,7 +84,7 @@ class GitHubClient:
         """
         async with httpx.AsyncClient() as client:
             try:
-                # 1. Get the README metadata (which includes download_url)
+                # Get the README metadata which includes download_url
                 response = await client.get(
                     f"{self.GITHUB_API_URL}/repos/{username}/{repo_name}/readme", 
                     headers=self.HEADERS
@@ -92,11 +92,9 @@ class GitHubClient:
                 response.raise_for_status()
                 readme_data = response.json()
                 
-                # 2. Fetch the raw content from the download_url
-                # This avoids base64 decoding issues and handles large files
+                # Fetch the raw content from the download_url
                 content_response = await client.get(readme_data['download_url'])
                 return content_response.text
             
             except (httpx.HTTPStatusError, KeyError):
-                # If README doesn't exist or there's an error, return None
                 return None

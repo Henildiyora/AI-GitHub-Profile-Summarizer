@@ -1,8 +1,10 @@
 import os
 from dotenv import load_dotenv
+from sqlmodel import Session
 load_dotenv() 
 
-from fastapi import FastAPI, HTTPException, Form, File, UploadFile
+# Added Depends
+from fastapi import Depends, FastAPI, HTTPException, Form, File, UploadFile
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import JSONResponse, HTMLResponse
 from pydantic import BaseModel
@@ -16,20 +18,23 @@ import json
 # Import the new classes from our client modules
 from app.github_client import GitHubClient
 from app.llm_client import LLMClient
+from app.ollama_client import OllamaClient
+from app.gpt_client import GPTClient
+from app.aggregator_client import AggregatorClient
+
+from sqlmodel import Session, select
+from app.database import engine, create_db_and_tables
+from app.models import Project, Candidate
 
 # Path Definitions
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 TEMPLATES_DIR = os.path.join(BASE_DIR, "templates")
+REPORTS_DIR = os.path.join(BASE_DIR, "generated_reports")
+os.makedirs(REPORTS_DIR, exist_ok=True)
 
 # Initialize FastAPI App
 app = FastAPI()
-
-# Not nedded more, this content add into the Form() flides.
-# # Pydantic Models (Unchanged)
-# class SummaryRequest(BaseModel):
-#     username: str
-#     job_description: str
 
 ANALYSIS_CACHE: Dict[str, Any] = {}
 
@@ -45,10 +50,56 @@ class FitReportResponse(BaseModel):
 # Create global instances of our clients
 # These will be reused for all requests
 github_client = GitHubClient()
-llm_client = LLMClient()
+gemini_client = LLMClient()
+ollama_client = OllamaClient()
+gpt_client = GPTClient()
+aggregator_client = AggregatorClient()
 
 # Static Files Mount
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
+app.mount("/reports", StaticFiles(directory=REPORTS_DIR), name="reports")
+
+# Function to create DB on startup
+@app.on_event("startup")
+def on_startup():
+    create_db_and_tables()
+
+# Dependency for getting a DB session
+def get_session():
+    with Session(engine) as session:
+        yield session
+
+# API Endpoint to CREATE a Project
+class ProjectCreate(BaseModel):
+    name: str
+    job_description: str
+
+@app.post("/projects/")
+def create_project(project: ProjectCreate, session: Session = Depends(get_session)):
+    db_project = Project.from_orm(project)
+    session.add(db_project)
+    session.commit()
+    session.refresh(db_project)
+    return db_project
+
+# API Endpoint to LIST all Projects
+@app.get("/projects/", response_model=list[Project])
+def list_projects(session: Session = Depends(get_session)):
+    projects = session.exec(select(Project)).all()
+    return projects
+
+@app.get("/projects/{project_id}/candidates/", response_model=List[Candidate])
+def list_candidates_for_project(project_id: int, session: Session = Depends(get_session)):
+    """
+    Fetches all candidates associated with a specific project ID.
+    """
+    candidates = session.exec(
+        select(Candidate).where(Candidate.project_id == project_id)
+    ).all()
+    if not candidates:
+        # Return empty list, not an error, if no candidates yet
+        return []
+    return candidates
 
 def parse_pdf_resume(file_contents: bytes) -> str:
     """
@@ -71,7 +122,7 @@ def parse_pdf_resume(file_contents: bytes) -> str:
     
     except Exception as e:
         print(f"Error parsing PDF: {e}")
-        raise HTTPException(status_code=400, detail=f"Could not parse PDF file. Error: {e}")
+        return ""
 
 
 @app.get("/", response_class=HTMLResponse)
@@ -86,13 +137,13 @@ async def read_root():
     with open(html_file_path) as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
-# API Endpoint
-@app.post("/summarize", response_model=FitReportResponse)
+@app.post("/projects/{project_id}/summarize", response_model=Candidate)
 async def get_github_summary(
+    project_id: int,
     username: str = Form(...),
-    job_description: str = Form(...),
     resume_file: UploadFile = File(...),
-    linkedin_file: Optional[UploadFile] = File(None)
+    linkedin_file: Optional[UploadFile] = File(None),
+    session: Session = Depends(get_session)
 ):
     """
         Main API endpoint to generate a candidate fit report.
@@ -110,10 +161,15 @@ async def get_github_summary(
     """
     if not username:
         raise HTTPException(status_code=400, detail="GitHub username is required.")
-    if not job_description:
-        raise HTTPException(status_code=400, detail="Job Description is required.")
     if not resume_file or resume_file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="A valid PDF resume file is required.")
+    
+    project = session.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get JD from the project object
+    job_description = project.job_description
 
     try:
         # Read and parse the resume 
@@ -121,12 +177,12 @@ async def get_github_summary(
         resume_text = parse_pdf_resume(resume_contents)
 
         linkedin_text: Optional[str] = None
+        linkedin_contents: Optional[bytes] = None 
         if linkedin_file:
             if linkedin_file.content_type != "application/pdf":
                 raise HTTPException(status_code=400, detail="LinkedIn file must be a PDF.")
             linkedin_contents = await linkedin_file.read()
             linkedin_text = parse_pdf_resume(linkedin_contents)
-
 
         if not resume_text:
             raise HTTPException(status_code=400, detail="Could not extract text from PDF. The file might be empty or image-based.")
@@ -163,26 +219,111 @@ async def get_github_summary(
 
         # Check cache
         if cache_key in ANALYSIS_CACHE:
-            print(f"--- Returning cached result for key: {cache_key} ---")
-            return ANALYSIS_CACHE[cache_key]
+            print(f" Returning cached result for key: {cache_key}")
+            final_summary_data = ANALYSIS_CACHE[cache_key]
+        else:
+            print(f"Generating new report. Cache key: {cache_key}")
+
+            common_args = {
+                "profile": profile, "repos": top_repos, "readmes": readmes,
+                "job_description": job_description, "resume_text": resume_text,
+                "linkedin_text": linkedin_text
+            }
+
+            tasks = [
+                gemini_client.generate_summary_from_github_data(**common_args),
+                # ollama_client.generate_summary_from_github_data(**common_args),
+                # gpt_client.generate_summary_from_github_data(**common_args)
+            ]
+            
+            # Run both models concurrently
+            all_reports_data = await asyncio.gather(*tasks, return_exceptions=True)
+
+            # Filter out errors
+            valid_reports = []
+            for i, result in enumerate(all_reports_data):
+                if isinstance(result, Exception):
+                    print(f"Error from model {i}: {result}")
+                elif "error" in result:
+                    print(f"API error from model {i}: {result['error']}")
+                else:
+                    valid_reports.append(result)
+
+            if not valid_reports:
+                raise HTTPException(status_code=500, detail="All AI models failed to generate a report.")
+            
+            # Aggregator Step
+            if len(valid_reports) == 1:
+                print(f"Only one model succeeded ({valid_reports[0].get('model_source', 'Unknown')}), using its report directly.")
+                valid_reports[0].pop('model_source', None) 
+                final_summary_data = valid_reports[0]
+            else:
+                print(f"--- Synthesizing {len(valid_reports)} reports...")
+                final_summary_data = await aggregator_client.synthesize_reports(valid_reports)
+
+            if "error" in final_summary_data:
+                 raise HTTPException(status_code=500, detail=final_summary_data["error"])
+            
+            # Cache the raw dictionary
+            ANALYSIS_CACHE[cache_key] = final_summary_data
+
+        existing_candidate = session.exec(
+            select(Candidate).where(
+                Candidate.project_id == project_id,
+                Candidate.github_username == username # Use the input username
+            )
+        ).first()
         
-        print(f"--- Generating new report. Cache key: {cache_key} ---")
+        # Create a safe folder name
+        candidate_folder_name = f"{username.replace('/', '_')}_{project_id}"
+        candidate_dir = os.path.join(REPORTS_DIR, candidate_folder_name)
+        os.makedirs(candidate_dir, exist_ok=True)
+        
+        
+        # Save the report as a JSON file
+        report_file_path = os.path.join(candidate_dir, "report.json")
+        with open(report_file_path, "w") as f:
+            # We use final_summary_data, which is a dict from cache or LLM
+            json.dump(final_summary_data, f, indent=4)
 
-        # Generate the structured summary using the LLM
-        summary_data = await llm_client.generate_summary_from_github_data(
-            profile = profile,
-            repos = top_repos,
-            readmes = readmes,
-            job_description = job_description,
-            resume_text = resume_text,
-            linkedin_text = linkedin_text
-        )
+        # Save the resume and LinkedIn PDF
+        resume_path = os.path.join(candidate_dir, "resume.pdf")
+        with open(resume_path, "wb") as f:
+            f.write(resume_contents)
 
-        if "error" in summary_data:
-             raise HTTPException(status_code=500, detail=summary_data["error"])
+        # Save LinkedIn PDF if it exists
+        if linkedin_contents:
+            linkedin_path = os.path.join(candidate_dir, "linkedin.pdf")
+            with open(linkedin_path, "wb") as f:
+                f.write(linkedin_contents)
 
-        # Validate and return the data using our Pydantic model
-        return FitReportResponse(**summary_data)
+        if existing_candidate:
+            print(f"Updating existing candidate record ID: {existing_candidate.id}")
+            # Update the report path if it changed (though unlikely with this naming)
+            existing_candidate.report_file_path = report_file_path
+            session.add(existing_candidate)
+            session.commit()
+            session.refresh(existing_candidate)
+            db_candidate_to_return = existing_candidate # Set the object to return
+        else:
+            print(f"Creating new candidate record")
+            # Create a NEW candidate record
+            new_candidate = Candidate(
+                name=username, # Use the input username for name field too initially
+                github_username=username,
+                report_file_path=report_file_path,
+                project_id=project_id
+            )
+            session.add(new_candidate)
+            session.commit()
+            session.refresh(new_candidate)
+            db_candidate_to_return = new_candidate # Set the object to return
+
+        # Store the report dictionary in the cache AFTER DB operations succeed
+        ANALYSIS_CACHE[cache_key] = final_summary_data
+        
+        # Return the created or updated Candidate object
+        return db_candidate_to_return
 
     except Exception as e:
         if isinstance(e, HTTPException):

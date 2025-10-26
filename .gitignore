@@ -28,6 +28,7 @@ MANIFEST
 
 #Files 
 notes.txt
+generated_reports/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template

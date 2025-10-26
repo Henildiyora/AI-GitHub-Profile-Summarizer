@@ -3,20 +3,7 @@ import google.generativeai as genai
 import json
 from typing import Dict, Any, Optional
 
-class LLMClient:
-    """
-    A client for interacting with the Google Gemini API.
-
-    Handles the generation of candidate fit reports by formatting
-    prompts and parsing JSON responses.
-
-    Attributes:
-        model: The configured Gemini GenerativeModel instance.
-        SYSTEM_PROMPT (str): The master prompt defining the AI's role
-            and the desired JSON output structure.
-    """
-    
-    SYSTEM_PROMPT = """
+SYSTEM_PROMPT = """
     You are an expert technical recruiter and senior engineering manager.
     Your task is to analyze a candidate's professional profile
     against a specific job description (JD).
@@ -40,6 +27,19 @@ class LLMClient:
       "red_flags": [<string, a list of any potential red flags (e.g., 'Claims 5 years of Python on resume but GitHub shows no Python projects', 'LinkedIn title is "Staff" but resume/GitHub projects look Junior')>],
       "interview_questions": [<string, a list of 3-5 sharp, targeted interview questions (e.g., 'Your LinkedIn and resume both list AWS, but your GitHub projects don't seem to use it. Can you describe your experience there?')>]
     }
+    """
+
+class LLMClient:
+    """
+    A client for interacting with the Google Gemini API.
+
+    Handles the generation of candidate fit reports by formatting
+    prompts and parsing JSON responses.
+
+    Attributes:
+        model: The configured Gemini GenerativeModel instance.
+        SYSTEM_PROMPT (str): The master prompt defining the AI's role
+            and the desired JSON output structure.
     """
 
     def __init__(self):
@@ -85,7 +85,7 @@ class LLMClient:
         if not self.model:
             return {"error": "Gemini API is not configured. Please check your API key."}
 
-        # 1. Construct the user's prompt (the context)
+        # Construct the user's prompt (the context)
         github_context = f"GitHub Profile Bio: {profile.get('bio', 'Not provided.')}\n\n"
         github_context += "Top Repositories (by stars):\n"
 
@@ -129,12 +129,15 @@ class LLMClient:
 
         user_message = "\n\n".join(user_message_segments)
 
-        # 2. Call the Gemini API
+        # Call the Gemini API
         try:
             response = await self.model.generate_content_async(
-                [self.SYSTEM_PROMPT, user_message]
+                [SYSTEM_PROMPT, user_message]
             )
-            return json.loads(response.text)
+            # Add model_source
+            report = json.loads(response.text)
+            report['model_source'] = 'Gemini 2.5 Pro'
+            return report
             
         except Exception as e:
             print(f"An error occurred while calling the Gemini API: {e}")

@@ -5,3 +5,6 @@ httpx
 pypdf
 pydantic 
 python-multipart
+# ollama
+# openai
+sqlmodel

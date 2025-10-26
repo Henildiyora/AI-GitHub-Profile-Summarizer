@@ -3,82 +3,135 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Candidate Screener</title>
+    <title>AI Candidate Screener - Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/styles.css">
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+    <style>
+        .selected-project { background-color: var(--color-border); }
+        html, body { height: 100%; margin: 0; }
+        body { display: flex; }
+        #sidebar { width: 25%; max-width: 300px; height: 100vh; overflow-y: auto; flex-shrink: 0; } /* Added flex-shrink: 0 */
+        #main-content { flex-grow: 1; height: 100vh; overflow-y: auto; padding: 2rem; }
+    </style>
 </head>
-<body class="text-gray-200 flex items-center justify-center min-h-screen p-4">
+<body class="text-gray-200 bg-gray-900 flex">
 
-    <div class="w-full max-w-5xl mx-auto"> 
-        <div class="text-center mb-6">
-            <h1 class="text-4xl font-extrabold text-white">AI Candidate Screener</h1>
-            <p class="text-lg text-gray-400 mt-2">Analyze a candidate's GitHub, Resume, and (optionally) LinkedIn.</p>
-        </div>
-
-        <div class="glass-card p-6 rounded-2xl shadow-2xl mb-6">
-            <div class="space-y-4">
-                
-                <div>
-                    <label for="username-input" class="block text-sm font-medium text-gray-300 mb-1">GitHub Username</label>
-                    <input type="text" id="username-input" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="e.g., torvalds">
-                </div>
-                
-                <div>
-                    <label for="jd-input" class="block text-sm font-medium text-gray-300 mb-1">Job Description</label>
-                    <textarea id="jd-input" rows="8" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Paste the full job description here..."></textarea>
-                </div>
-
-                <div>
-                    <label for="resume-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's Resume (PDF) <span class="text-red-400">*</span></label>
-                    <input type="file" id="resume-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer">
-                </div>
-                
-                <div>
-                    <label for="linkedin-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's LinkedIn (PDF) - Optional</label>
-                    <input type="file" id="linkedin-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer" aria-describedby="linkedin-help">
-                    <p id="linkedin-help" class="mt-1 text-xs text-gray-400">On their profile: Click "More" > "Save to PDF".</p>
-                </div>
-
-                <button id="generate-button" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
-                    <ion-icon name="analytics-outline" class="text-xl"></ion-icon>
-                    Analyze Candidate Fit
-                </button>
-            </div>
-        </div>
-
-        <div id="result-container" class="mt-6 hidden">
-            <div id="loader" class="text-center p-8 glass-card rounded-2xl hidden">
-                <svg class="animate-spin h-10 w-10 text-sky-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p class="mt-4 text-lg text-gray-300">Analyzing candidate fit... this may take a moment.</p>
-            </div>
-            <div id="error-message" class="text-red-400 bg-red-900/50 border border-red-700 p-4 rounded-lg text-center hidden"></div>
-            <div id="summary-output-card" class="glass-card rounded-2xl shadow-2xl overflow-hidden hidden">
-                <div class="p-6">
-                    <h2 class="text-2xl font-bold text-white mb-6">Candidate Fit Report</h2>
-                    <div class="text-center mb-6">
-                        <div id="fit-score-circle" class="relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white bg-gradient-to-br from-sky-500 to-sky-700 rounded-full shadow-lg">
-                            </div>
-                        <p class="mt-2 text-lg text-gray-300">Overall Fit Score</p>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output">
-                         </div>
-                </div>
-            </div>
+    <div id="sidebar" class="bg-gray-800 p-4 border-r border-gray-700 flex flex-col">
+        <h1 class="text-2xl font-bold text-white mb-6">Projects</h1>
+        <button id="new-project-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg mb-4 flex items-center justify-center gap-2">
+            <ion-icon name="add-circle-outline"></ion-icon>
+            New Project
+        </button>
+        <input type="text" id="project-search" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Search projects...">
+        <div id="project-list" class="flex-grow space-y-2">
+            <p class="text-gray-400 text-sm">Loading projects...</p>
         </div>
     </div>
 
+    <div id="main-content">
+        <div id="welcome-message" class="text-center p-10">
+            <h2 class="text-3xl font-bold text-white mb-4">Welcome to the AI Candidate Screener</h2>
+            <p class="text-lg text-gray-400">Select a project from the sidebar or create a new one to begin.</p>
+        </div>
+
+        <div id="create-project-form" class="hidden glass-card p-6 rounded-2xl shadow-xl max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold text-white mb-4">Create New Project</h2>
+            <div class="space-y-4">
+                <div>
+                    <label for="project-name" class="block text-sm font-medium text-gray-300 mb-1">Project Name (e.g., SDE Intern, ML Engineer)</label>
+                    <input type="text" id="project-name" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Software Development Engineer">
+                </div>
+                <div>
+                    <label for="project-jd" class="block text-sm font-medium text-gray-300 mb-1">Job Description</label>
+                    <textarea id="project-jd" rows="10" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Paste the full job description here..."></textarea>
+                </div>
+                <div class="flex justify-end gap-3">
+                    <button id="cancel-project-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button>
+                    <button id="save-project-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-6 rounded-lg">Save Project</button>
+                </div>
+                 <div id="project-error-message" class="text-red-400 text-sm mt-2 hidden"></div>
+            </div>
+        </div>
+
+        <div id="analyze-candidate-section" class="hidden">
+             <h2 id="project-title-display" class="text-3xl font-bold text-white mb-6">Analyze Candidate for [Project Name]</h2>
+
+             <div class="glass-card p-6 rounded-2xl shadow-xl mb-6 max-w-2xl mx-auto">
+                <div class="space-y-4">
+                    <div>
+                        <label for="username-input" class="block text-sm font-medium text-gray-300 mb-1">GitHub Username</label>
+                        <input type="text" id="username-input" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="e.g., torvalds">
+                    </div>
+                    <div>
+                        <label for="resume-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's Resume (PDF) <span class="text-red-400">*</span></label>
+                        <input type="file" id="resume-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer">
+                    </div>
+                    <div>
+                        <label for="linkedin-file" class="block text-sm font-medium text-gray-300 mb-1">Candidate's LinkedIn (PDF) - Optional</label>
+                        <input type="file" id="linkedin-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer" aria-describedby="linkedin-help">
+                        <p id="linkedin-help" class="mt-1 text-xs text-gray-400">On their profile: Click "More" > "Save to PDF".</p>
+                    </div>
+                    <button id="generate-button" data-project-id="" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2">
+                        <ion-icon name="analytics-outline" class="text-xl"></ion-icon>
+                        Analyze Candidate Fit
+                    </button>
+                </div>
+            </div> <div id="candidate-list-section" class="mt-8 max-w-2xl mx-auto">
+                <h3 class="text-xl font-semibold text-white mb-4">Analyzed Candidates for this Project</h3>
+                <div id="candidate-list" class="space-y-3">
+                    <p class="text-gray-400 text-sm">No candidates analyzed yet for this project.</p>
+                </div>
+            </div>
+            <div id="result-container" class="mt-6 hidden max-w-4xl mx-auto">
+                <div id="loader" class="text-center p-8 glass-card rounded-2xl hidden">
+                    <svg class="animate-spin h-10 w-10 text-sky-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="mt-4 text-lg text-gray-300">Analyzing candidate fit... this may take a moment.</p>
+                </div>
+                <div id="error-message" class="text-red-400 bg-red-900/50 border border-red-700 p-4 rounded-lg text-center hidden"></div>
+                <div id="summary-output-card" class="glass-card rounded-2xl shadow-2xl overflow-hidden hidden">
+                    <div class="p-6">
+                        <h2 class="text-2xl font-bold text-white mb-6">Candidate Fit Report</h2>
+                        <div class="text-center mb-6">
+                            <div id="fit-score-circle" class="relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white bg-gradient-to-br from-sky-500 to-sky-700 rounded-full shadow-lg"></div>
+                            <p class="mt-2 text-lg text-gray-300">Overall Fit Score</p>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output"></div>
+                    </div>
+                </div>
+            </div>
+             </div> </div>
+
     <script>
-        // Add linkedinFile selector
+        // Globals
+        let projects = [];
+        let currentProjectId = null;
+        let currentCandidates = [];
+
+        // DOM Elements
+        const newProjectBtn = document.getElementById('new-project-btn');
+        const projectSearch = document.getElementById('project-search');
+        const projectListDiv = document.getElementById('project-list');
+
+        const welcomeMessageDiv = document.getElementById('welcome-message');
+        const createProjectFormDiv = document.getElementById('create-project-form');
+        const analyzeCandidateSectionDiv = document.getElementById('analyze-candidate-section');
+        const candidateListSection = document.getElementById('candidate-list-section');
+        const candidateListDiv = document.getElementById('candidate-list');
+
+        const projectNameInput = document.getElementById('project-name');
+        const projectJdInput = document.getElementById('project-jd');
+        const cancelProjectBtn = document.getElementById('cancel-project-btn');
+        const saveProjectBtn = document.getElementById('save-project-btn');
+        const projectErrorMessage = document.getElementById('project-error-message');
+
+        const projectTitleDisplay = document.getElementById('project-title-display');
         const usernameInput = document.getElementById('username-input');
-        const jdInput = document.getElementById('jd-input');
         const resumeFile = document.getElementById('resume-file');
         const linkedinFile = document.getElementById('linkedin-file');
         const generateButton = document.getElementById('generate-button');
+
         const resultContainer = document.getElementById('result-container');
         const loader = document.getElementById('loader');
         const errorMessage = document.getElementById('error-message');
@@ -86,7 +139,215 @@
         const summaryOutput = document.getElementById('summary-output');
         const fitScoreCircle = document.getElementById('fit-score-circle');
 
-        // cleanUsername function
+        // API Calls
+        const fetchProjects = async () => {
+            try {
+                const response = await fetch('/projects/');
+                if (!response.ok) throw new Error('Failed to fetch projects');
+                projects = await response.json();
+                renderProjectList();
+            } catch (error) {
+                console.error("Error fetching projects:", error);
+                projectListDiv.innerHTML = '<p class="text-red-400 text-sm">Error loading projects.</p>';
+            }
+        };
+
+        const saveNewProject = async () => {
+             const name = projectNameInput.value.trim();
+             const job_description = projectJdInput.value.trim();
+             if (!name || !job_description) {
+                 showProjectError("Project name and job description are required.");
+                 return;
+             }
+             hideProjectError();
+             saveProjectBtn.disabled = true;
+             saveProjectBtn.textContent = 'Saving...';
+
+             try {
+                const response = await fetch('/projects/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, job_description }),
+                });
+                if (!response.ok) {
+                     const errorData = await response.json();
+                     throw new Error(errorData.detail || 'Failed to save project');
+                }
+                await fetchProjects(); // Refresh list
+                showWelcomeMessage(); // Go back to welcome
+                // Clear form
+                projectNameInput.value = '';
+                projectJdInput.value = '';
+
+             } catch(error) {
+                 showProjectError(error.message);
+                 console.error("Error saving project:", error);
+             } finally {
+                 saveProjectBtn.disabled = false;
+                 saveProjectBtn.textContent = 'Save Project';
+             }
+        };
+
+        const fetchCandidates = async (projectId) => {
+            if (!projectId) return;
+            try {
+                const response = await fetch(`/projects/${projectId}/candidates/`);
+                if (!response.ok) throw new Error('Failed to fetch candidates');
+                currentCandidates = await response.json();
+                renderCandidateList();
+            } catch (error) {
+                console.error("Error fetching candidates:", error);
+                candidateListDiv.innerHTML = '<p class="text-red-400 text-sm">Error loading candidates.</p>';
+            }
+        };
+        // UI Rendering
+        const renderProjectList = () => {
+            const searchTerm = projectSearch.value.toLowerCase();
+            projectListDiv.innerHTML = ''; // Clear existing list
+            const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(searchTerm));
+
+            if (filteredProjects.length === 0) {
+                 projectListDiv.innerHTML = '<p class="text-gray-400 text-sm">No projects found.</p>';
+                 return;
+            }
+
+            filteredProjects.forEach(project => {
+                const projectDiv = document.createElement('div');
+                projectDiv.className = `p-2 rounded-lg cursor-pointer hover:bg-gray-700 text-sm project-item ${project.id === currentProjectId ? 'selected-project' : ''}`;
+                projectDiv.textContent = project.name;
+                projectDiv.dataset.projectId = project.id; // Store project id
+                projectDiv.addEventListener('click', () => selectProject(project.id));
+                projectListDiv.appendChild(projectDiv);
+            });
+        };
+
+        const renderCandidateList = () => {
+            candidateListDiv.innerHTML = ''; // Clear existing list
+            if (currentCandidates.length === 0) {
+                candidateListDiv.innerHTML = '<p class="text-gray-400 text-sm">No candidates analyzed yet for this project.</p>';
+                return;
+            }
+
+            currentCandidates.forEach(candidate => {
+                const candidateDiv = document.createElement('div');
+                candidateDiv.className = 'glass-card p-3 rounded-lg flex justify-between items-center text-sm hover:bg-gray-700 cursor-pointer candidate-item';
+                candidateDiv.dataset.candidateId = candidate.id;
+                candidateDiv.dataset.reportPath = candidate.report_file_path; // Store report path
+
+                const nameSpan = document.createElement('span');
+                nameSpan.textContent = candidate.github_username;
+                candidateDiv.appendChild(nameSpan);
+
+                // Add a "View Report" button
+                const viewButton = document.createElement('button');
+                viewButton.className = 'text-sky-400 hover:text-sky-300 text-xs font-semibold';
+                viewButton.textContent = 'View Report';
+                viewButton.onclick = (event) => {
+                    event.stopPropagation(); // Prevent project selection change if nested
+                    viewCandidateReport(candidate.report_file_path);
+                };
+                candidateDiv.appendChild(viewButton);
+
+                candidateListDiv.appendChild(candidateDiv);
+            });
+        };
+        
+
+        // Function to fetch and display a specific candidate's report
+        const viewCandidateReport = async (reportPath) => {
+            console.log("Attempting to view report:", reportPath);
+             // Show loader, hide error/previous report
+            resultContainer.classList.remove('hidden');
+            loader.classList.remove('hidden');
+            errorMessage.classList.add('hidden');
+            summaryOutputCard.classList.add('hidden');
+
+            try {
+                // Construct the correct relative URL
+                const absolutePath = reportPath;
+                const reportsBase = "generated_reports/";
+                const relativePathIndex = absolutePath.indexOf(reportsBase);
+                if (relativePathIndex === -1) {
+                    throw new Error("Could not determine report file relative path.");
+                }
+                const relativeReportPath = absolutePath.substring(relativePathIndex + reportsBase.length);
+                const reportUrl = `/reports/${relativeReportPath}`;
+
+                console.log("Fetching report from URL:", reportUrl);
+
+                const reportResponse = await fetch(reportUrl);
+                 if (!reportResponse.ok) {
+                     console.error("Fetch error details:", reportResponse.status, reportResponse.statusText, "URL:", reportUrl);
+                     throw new Error('Failed to fetch generated report file');
+                 }
+                 const reportData = await reportResponse.json();
+                 displaySummary(reportData); // Use the existing display function
+
+            } catch(error) {
+                 showError(error.message); // Use existing error display
+                 console.error("Error viewing report:", error);
+            } finally {
+                 loader.classList.add('hidden'); // Hide loader regardless of success/fail
+            }
+        };
+
+        // UI State Management
+        const showWelcomeMessage = () => {
+            welcomeMessageDiv.classList.remove('hidden');
+            createProjectFormDiv.classList.add('hidden');
+            analyzeCandidateSectionDiv.classList.add('hidden');
+            currentProjectId = null;
+            renderProjectList(); // Update selection style
+        };
+
+        const showCreateProjectForm = () => {
+            welcomeMessageDiv.classList.add('hidden');
+            createProjectFormDiv.classList.remove('hidden');
+            analyzeCandidateSectionDiv.classList.add('hidden');
+            currentProjectId = null;
+            renderProjectList(); // Update selection style
+             hideProjectError(); // Hide any previous errors
+        };
+
+        const showAnalyzeCandidateForm = (projectId) => {
+             const project = projects.find(p => p.id === projectId);
+             if (!project) return;
+
+             currentProjectId = projectId;
+             welcomeMessageDiv.classList.add('hidden');
+             createProjectFormDiv.classList.add('hidden');
+             analyzeCandidateSectionDiv.classList.remove('hidden');
+
+             projectTitleDisplay.textContent = `Analyze Candidate for ${project.name}`;
+             generateButton.dataset.projectId = projectId; // Set project id on the button
+
+             // Clear previous analysis form state
+             usernameInput.value = '';
+             resumeFile.value = '';
+             linkedinFile.value = '';
+             resultContainer.classList.add('hidden');
+             errorMessage.classList.add('hidden');
+             summaryOutputCard.classList.add('hidden');
+
+             renderProjectList(); // Update selection style
+
+             fetchCandidates(projectId);
+        };
+
+         const showProjectError = (message) => {
+             projectErrorMessage.textContent = `Error: ${message}`;
+             projectErrorMessage.classList.remove('hidden');
+         };
+         const hideProjectError = () => {
+             projectErrorMessage.classList.add('hidden');
+         };
+
+        // Event Handlers
+        const selectProject = (projectId) => {
+            showAnalyzeCandidateForm(projectId);
+        };
+
+        // Candidate Analysis Logic (Mostly the same, just URL changes)
         const cleanUsername = (input) => {
             try {
                 if (input.startsWith('http') || input.includes('github.com')) {
@@ -97,34 +358,24 @@
             return input.trim().split('/')[0];
         };
 
-        // handleGenerateClick
         const handleGenerateClick = async () => {
+            const projectId = generateButton.dataset.projectId;
+            if (!projectId) {
+                showError("No project selected.");
+                return;
+            }
+
             const rawInput = usernameInput.value;
-            const username = cleanUsername(rawInput); 
-            const jobDescription = jdInput.value;
+            const username = cleanUsername(rawInput);
             const resFile = resumeFile.files[0];
-            const liFile = linkedinFile.files[0]; 
+            const liFile = linkedinFile.files[0];
 
-    
-            if (!username) {
-                showError("Please enter a GitHub username.");
+            if (!username || !resFile) {
+                showError("GitHub username and Resume PDF are required.");
                 return;
             }
-            if (!jobDescription) { 
-                showError("Please enter a Job Description.");
-                return;
-            }
-            if (!resFile) { 
-                showError("Please upload a PDF resume.");
-                return;
-            }
-            if (resFile.type !== "application/pdf") {
-                 showError("Please make sure the resume file is a PDF.");
-                 return;
-            }
-
-            if (liFile && liFile.type !== "application/pdf") {
-                showError("Please make sure the LinkedIn file is a PDF.");
+             if (resFile.type !== "application/pdf" || (liFile && liFile.type !== "application/pdf")) {
+                showError("Please make sure uploaded files are PDFs.");
                 return;
             }
 
@@ -136,19 +387,16 @@
             generateButton.disabled = true;
             generateButton.innerHTML = `<ion-icon name="ellipsis-horizontal-outline" class="text-xl animate-pulse"></ion-icon> Analyzing...`;
 
-            // Use FormData to include optional LinkedIn file
             const formData = new FormData();
             formData.append('username', username);
-            formData.append('job_description', jobDescription);
             formData.append('resume_file', resFile);
-            
-            // Only append LinkedIn file if it exists
             if (liFile) {
                 formData.append('linkedin_file', liFile);
             }
 
             try {
-                const response = await fetch('/summarize', {
+                // Use the new project-specific endpoint
+                const response = await fetch(`/projects/${projectId}/summarize`, {
                     method: 'POST',
                     body: formData,
                 });
@@ -158,11 +406,48 @@
                     throw new Error(errorData.detail || `HTTP error! status: ${response.status}`);
                 }
 
-                const data = await response.json();
-                displaySummary(data);
+                // The response is now the Candidate object,
+                // We need to fetch the actual report JSON separately
+                const candidateData = await response.json();
+                console.log("Candidate created:", candidateData);
 
-            } catch (error) { 
+                // Fetch and display the NEW report
+                await viewCandidateReport(candidateData.report_file_path);
+
+                // Refresh the candidate list
+                await fetchCandidates(projectId);
+
+                // Fetch the report content
+                const absolutePath = candidateData.report_file_path;
+                // Find the part after "generated_reports/"
+                const reportsBase = "generated_reports/"; // The folder name we mount
+                const relativePathIndex = absolutePath.indexOf(reportsBase);
+
+                if (relativePathIndex === -1) {
+                    // Safety check if the path format is unexpected
+                    console.error("Unexpected report_file_path format:", absolutePath);
+                    throw new Error("Could not determine report file relative path from backend response.");
+                }
+
+                // Get the part AFTER "generated_reports/"
+                const relativeReportPath = absolutePath.substring(relativePathIndex + reportsBase.length);
+
+                // Prepend the MOUNT path "/reports/" to create the fetchable URL
+                const reportUrl = `/reports/${relativeReportPath}`;
+
+                console.log("Fetching report from URL:", reportUrl); // Should log the relative URL
+
+                const reportResponse = await fetch(reportUrl);
+                 if (!reportResponse.ok) {
+                     console.error("Fetch error details:", reportResponse.status, reportResponse.statusText, "URL:", reportUrl); // Log error details with URL
+                     throw new Error('Failed to fetch generated report file');
+                 }
+                 const reportData = await reportResponse.json();
+                 displaySummary(reportData); // Display the report data
+
+            } catch (error) {
                 showError(error.message);
+                console.error("Analysis Error:", error);
             } finally {
                 loader.classList.add('hidden');
                 generateButton.disabled = false;
@@ -170,48 +455,30 @@
             }
         };
 
-        // showError function
-        const showError = (message) => {
+        const showError = (message) => { 
             errorMessage.textContent = `Error: ${message}`;
             errorMessage.classList.remove('hidden');
             summaryOutputCard.classList.add('hidden');
+             loader.classList.add('hidden'); // Also hide loader on error
         };
 
-        // displaySummary function
-        const displaySummary = (data) => {
-            summaryOutput.innerHTML = ''; 
-            
-            // 1. Update Fit Score
+        // This function displays the content of the fetched report.json
+         const displaySummary = (data) => {
+            summaryOutput.innerHTML = ''; // Clear old results
             fitScoreCircle.innerHTML = `${data.fit_score || 0}%`;
             fitScoreCircle.className = 'relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white rounded-full shadow-lg bg-gradient-to-br';
-            if (data.fit_score < 50) {
-                fitScoreCircle.classList.add('from-red-500', 'to-red-700');
-            } else if (data.fit_score < 75) {
-                fitScoreCircle.classList.add('from-yellow-500', 'to-yellow-700');
-            } else {
-                fitScoreCircle.classList.add('from-sky-500', 'to-sky-700');
-            }
+            if (data.fit_score < 50) { fitScoreCircle.classList.add('from-red-500', 'to-red-700'); }
+            else if (data.fit_score < 75) { fitScoreCircle.classList.add('from-yellow-500', 'to-yellow-700'); }
+            else { fitScoreCircle.classList.add('from-sky-500', 'to-sky-700'); }
 
-            // 2. Helper Functions
             const createList = (items, color = 'text-gray-300') => {
                 if (!items || items.length === 0) return '<p class="text-gray-400">N/A</p>';
-                return `<ul class="list-disc list-inside ${color} space-y-1">
-                    ${items.map(item => `<li class="ml-4">${item}</li>`).join('')}
-                </ul>`;
-            };
+                return `<ul class="list-disc list-inside ${color} space-y-1">${items.map(item => `<li class="ml-4">${item}</li>`).join('')}</ul>`;
+             };
             const createSection = (title, icon, content, fullWidth = false) => {
-                return `
-                <div class="report-section ${fullWidth ? 'md:col-span-2' : ''} glass-card p-4 rounded-lg">
-                    <h3 class="flex items-center gap-2 text-lg font-semibold mb-2">
-                        <ion-icon name="${icon}"></ion-icon>
-                        ${title}
-                    </h3>
-                    <div class="output-section-content">${content}</div>
-                </div>
-                `;
-            };
+                return `<div class="report-section ${fullWidth ? 'md:col-span-2' : ''} glass-card p-4 rounded-lg"><h3 class="flex items-center gap-2 text-lg font-semibold mb-2"><ion-icon name="${icon}"></ion-icon>${title}</h3><div class="output-section-content">${content}</div></div>`;
+             };
 
-            // 3. Inject report sections
             summaryOutput.innerHTML += createSection('Overall Summary', 'person-circle-outline', `<p class="text-gray-300 whitespace-pre-wrap">${data.summary || 'No summary provided.'}</p>`, true);
             summaryOutput.innerHTML += createSection('Role Strengths', 'shield-checkmark-outline', createList(data.role_strengths, 'text-green-300'));
             summaryOutput.innerHTML += createSection('Role Weaknesses', 'trending-down-outline', createList(data.role_weaknesses, 'text-yellow-300'));
@@ -222,13 +489,17 @@
             errorMessage.classList.add('hidden');
         };
 
-        // Event Listeners
-        generateButton.addEventListener('click', handleGenerateClick);
-        usernameInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                // document.getElementById('jd-input').focus();
-            }
+        // Initial Load
+        document.addEventListener('DOMContentLoaded', () => {
+            fetchProjects();
+            showWelcomeMessage();
+            newProjectBtn.addEventListener('click', showCreateProjectForm);
+            cancelProjectBtn.addEventListener('click', showWelcomeMessage);
+            saveProjectBtn.addEventListener('click', saveNewProject);
+            generateButton.addEventListener('click', handleGenerateClick);
+            projectSearch.addEventListener('input', renderProjectList);
         });
+
     </script>
 </body>
 </html>
