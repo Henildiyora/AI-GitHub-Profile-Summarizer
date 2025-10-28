@@ -11,9 +11,11 @@ class Project(SQLModel, table=True):
 
 class Candidate(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+    unique_id: str = Field(index=True, unique=True)
     name: str
     github_username: str = Field(index=True)
     report_file_path: str  # Path to the saved .json report
+    fit_score: Optional[int] = Field(default=None, index=True)
 
     project_id: int = Field(foreign_key="project.id")
     project: Project = Relationship(back_populates="candidates")

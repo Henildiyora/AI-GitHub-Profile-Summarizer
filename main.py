@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
-from sqlmodel import Session
+from sqlmodel import Session, select
+from sqlalchemy import desc
 load_dotenv() 
 
 # Added Depends
@@ -14,6 +15,7 @@ import io
 from pypdf import PdfReader
 import hashlib
 import json
+import secrets
 
 # Import the new classes from our client modules
 from app.github_client import GitHubClient
@@ -88,13 +90,16 @@ def list_projects(session: Session = Depends(get_session)):
     projects = session.exec(select(Project)).all()
     return projects
 
+# list_candidates_for_project endpoint
 @app.get("/projects/{project_id}/candidates/", response_model=List[Candidate])
 def list_candidates_for_project(project_id: int, session: Session = Depends(get_session)):
     """
     Fetches all candidates associated with a specific project ID.
     """
     candidates = session.exec(
-        select(Candidate).where(Candidate.project_id == project_id)
+        select(Candidate)
+        .where(Candidate.project_id == project_id)
+        .order_by(desc(Candidate.fit_score))
     ).all()
     if not candidates:
         # Return empty list, not an error, if no candidates yet
@@ -266,64 +271,67 @@ async def get_github_summary(
             
             # Cache the raw dictionary
             ANALYSIS_CACHE[cache_key] = final_summary_data
+            
 
-        existing_candidate = session.exec(
-            select(Candidate).where(
-                Candidate.project_id == project_id,
-                Candidate.github_username == username # Use the input username
-            )
-        ).first()
-        
-        # Create a safe folder name
-        candidate_folder_name = f"{username.replace('/', '_')}_{project_id}"
-        candidate_dir = os.path.join(REPORTS_DIR, candidate_folder_name)
-        os.makedirs(candidate_dir, exist_ok=True)
-        
-        
-        # Save the report as a JSON file
-        report_file_path = os.path.join(candidate_dir, "report.json")
-        with open(report_file_path, "w") as f:
-            # We use final_summary_data, which is a dict from cache or LLM
-            json.dump(final_summary_data, f, indent=4)
+            # Query for existing candidate first
+            existing_candidate = session.exec(
+                select(Candidate).where(
+                    Candidate.project_id == project_id,
+                    Candidate.github_username == username
+                )
+            ).first()
 
-        # Save the resume and LinkedIn PDF
-        resume_path = os.path.join(candidate_dir, "resume.pdf")
-        with open(resume_path, "wb") as f:
-            f.write(resume_contents)
+            # Extract fit score from the report
+            fit_score = final_summary_data.get('fit_score') # Get score from final dict
 
-        # Save LinkedIn PDF if it exists
-        if linkedin_contents:
-            linkedin_path = os.path.join(candidate_dir, "linkedin.pdf")
-            with open(linkedin_path, "wb") as f:
-                f.write(linkedin_contents)
+            # Prepare file paths
+            candidate_folder_name = f"{username.replace('/', '_')}_{project_id}"
+            candidate_dir = os.path.join(REPORTS_DIR, candidate_folder_name)
+            os.makedirs(candidate_dir, exist_ok=True)
+            report_file_path = os.path.join(candidate_dir, "report.json")
+            resume_path = os.path.join(candidate_dir, "resume.pdf")
 
-        if existing_candidate:
-            print(f"Updating existing candidate record ID: {existing_candidate.id}")
-            # Update the report path if it changed (though unlikely with this naming)
-            existing_candidate.report_file_path = report_file_path
-            session.add(existing_candidate)
-            session.commit()
-            session.refresh(existing_candidate)
-            db_candidate_to_return = existing_candidate # Set the object to return
-        else:
-            print(f"Creating new candidate record")
-            # Create a NEW candidate record
-            new_candidate = Candidate(
-                name=username, # Use the input username for name field too initially
-                github_username=username,
-                report_file_path=report_file_path,
-                project_id=project_id
-            )
-            session.add(new_candidate)
-            session.commit()
-            session.refresh(new_candidate)
-            db_candidate_to_return = new_candidate # Set the object to return
+            # Save report JSON (always overwrite)
+            with open(report_file_path, "w") as f: json.dump(final_summary_data, f, indent=4)
+            # Save resume PDF (always overwrite)
+            with open(resume_path, "wb") as f: f.write(resume_contents)
+            # Save LinkedIn PDF if provided (always overwrite)
+            if linkedin_contents:
+                linkedin_path = os.path.join(candidate_dir, "linkedin.pdf")
+                with open(linkedin_path, "wb") as f: f.write(linkedin_contents)
 
-        # Store the report dictionary in the cache AFTER DB operations succeed
-        ANALYSIS_CACHE[cache_key] = final_summary_data
-        
-        # Return the created or updated Candidate object
-        return db_candidate_to_return
+            if existing_candidate:
+                print(f"--- Updating existing candidate record ID: {existing_candidate.id} ---")
+                existing_candidate.report_file_path = report_file_path
+                existing_candidate.fit_score = fit_score # Update score
+                # existing_candidate.name = username # Optionally update name if needed
+                session.add(existing_candidate)
+                session.commit()
+                session.refresh(existing_candidate)
+                db_candidate_to_return = existing_candidate
+            else:
+                print(f"--- Creating new candidate record ---")
+                # Generate unique ID for NEW candidates
+                unique_id = secrets.token_hex(3) # Generate 6 hex characters
+                
+                # Ensure uniqueness (extremely unlikely collision, but good practice)
+                while session.exec(select(Candidate).where(Candidate.unique_id == unique_id)).first():
+                    unique_id = secrets.token_hex(3)
+                    
+                new_candidate = Candidate(
+                    unique_id=unique_id, # Save unique ID
+                    name=username, # Use GitHub username as initial name
+                    github_username=username,
+                    report_file_path=report_file_path,
+                    project_id=project_id,
+                    fit_score=fit_score # Save score
+                )
+                session.add(new_candidate)
+                session.commit()
+                session.refresh(new_candidate)
+                db_candidate_to_return = new_candidate
+
+            return db_candidate_to_return
 
     except Exception as e:
         if isinstance(e, HTTPException):
