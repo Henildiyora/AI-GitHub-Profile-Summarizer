@@ -2,7 +2,7 @@ import ollama
 import json
 from typing import Dict, Any, Optional
 
-from app.llm_client import SYSTEM_PROMPT 
+from app.services.llm_client import SYSTEM_PROMPT 
 
 class OllamaClient:
     """
@@ -36,7 +36,7 @@ class OllamaClient:
         if not self.client:
             return {"error": "Ollama client is not configured."}
 
-        # 1. Build the user message (same logic as llm_client.py)
+        #  Build the user message
         github_context = f"GitHub Profile Bio: {profile.get('bio', 'Not provided.')}\n\n"
         github_context += "Top Repositories (by stars):\n"
         for repo in repos[:5]:

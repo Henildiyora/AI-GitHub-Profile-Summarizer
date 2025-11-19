@@ -2,33 +2,7 @@ import os
 import google.generativeai as genai
 import json
 from typing import Dict, Any, List
-
-AGGREGATOR_SYSTEM_PROMPT = """
-You are a world-class hiring manager and senior technical lead.
-Your job is to synthesize multiple AI-generated reports about a job candidate
-into one single, authoritative JSON report.
-
-The user will provide a list of JSON reports.
-You must analyze all of them and produce a single, final JSON object
-that represents a consensus.
-
-- For "fit_score", calculate the average.
-- For "summary", write a new, synthesized summary based on all reports.
-- For "role_strengths", "role_weaknesses", and "red_flags",
-  combine the lists, remove duplicates, and consolidate similar points.
-- For "interview_questions", select the top 5 most insightful
-  and unique questions from all reports.
-
-The final JSON structure MUST match this:
-{
-  "fit_score": <int>,
-  "summary": "<string>",
-  "role_strengths": [<string>],
-  "role_weaknesses": [<string>],
-  "red_flags": [<string>],
-  "interview_questions": [<string>]
-}
-"""
+from app.constants import AGGREGATOR_SYSTEM_PROMPT
 
 
 class AggregatorClient:
@@ -56,6 +30,10 @@ class AggregatorClient:
     async def synthesize_reports(self, reports: List[Dict[str, Any]]) -> Dict[str, Any]:
         """
         Takes a list of report dictionaries and synthesizes them.
+        Args:
+            reports (List[Dict[str, Any]]): List of individual AI-generated reports.
+        Returns:
+            Dict[str, Any]: The synthesized final report.
         """
         if not self.model:
             return {"error": "Aggregator client is not configured."}
@@ -71,7 +49,10 @@ class AggregatorClient:
                 total_score += report.get("fit_score", 0)
                 valid_reports_count += 1
         
-        avg_fit_score = round(total_score / valid_reports_count) if valid_reports_count > 0 else 0
+        if valid_reports_count > 0:
+            avg_fit_score = round(total_score / valid_reports_count)
+        else:
+            avg_fit_score = 0
 
         # Build a dynamic prompt
         # Build the user message for the synthesizer

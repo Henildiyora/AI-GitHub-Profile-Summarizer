@@ -1,10 +1,11 @@
 fastapi
 uvicorn[standard]
-python-dotenv
-httpx
-pypdf
-pydantic 
-python-multipart
-# ollama
-# openai
 sqlmodel
+psycopg2-binary
+google-generativeai
+httpx
+pydantic
+python-dotenv
+pypdf
+python-multipart
+fpdf2

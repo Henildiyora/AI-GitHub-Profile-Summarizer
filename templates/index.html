@@ -9,77 +9,14 @@
     <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
     <style>
-        /* Base styles from styles.css are applied */
-        /* Additional dashboard specific styles */
-        .selected-project > .project-header { /* Style the header of selected project */
-             background-color: var(--color-border); /* Use existing color variable */
-        }
-        .candidate-subitem {
-            padding-left: 1.5rem; /* Indent candidate names */
-            font-size: 0.8rem;
-            line-height: 1.4; /* Slightly more space */
-            color: var(--color-text-secondary); /* Dimmer color for sub-items */
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis; /* Truncate long names */
-        }
-        .candidate-subitem:hover {
-            color: var(--color-accent-sky); /* Highlight on hover */
-        }
-        html, body { height: 100%; margin: 0; background-color: var(--color-primary-bg); /* Ensure bg color */}
+        .selected-project { background-color: var(--color-border); }
+        html, body { height: 100%; margin: 0; background-color: var(--color-primary-bg); }
         body { display: flex; }
-        #sidebar {
-            width: 25%;
-            min-width: 280px; /* Min width */
-            max-width: 400px; /* Max width */
-            height: 100vh;
-            overflow-y: auto;
-            flex-shrink: 0;
-            background-color: #2B2E4A; /* Slightly different sidebar bg */
-            border-right: 1px solid var(--color-border);
-        }
-        #main-content {
-            flex-grow: 1;
-            height: 100vh;
-            overflow-y: auto;
-            padding: 2rem;
-        }
-        /* Accordion styles */
-        .project-candidates {
-            max-height: 0;
-            overflow: hidden;
-            transition: max-height 0.3s ease-out;
-        }
-        .project-item.expanded .project-candidates {
-            max-height: 500px; /* Adjust if you expect more candidates */
-        }
-        .project-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0.5rem; /* Consistent padding */
-            border-radius: 0.375rem; /* Rounded corners */
-            cursor: pointer;
-        }
-         .project-header:hover {
-             background-color: rgba(255, 255, 255, 0.05);
-         }
-        .project-header ion-icon {
-            transition: transform 0.3s ease-out;
-            font-size: 0.8rem; /* Smaller icon */
-            color: var(--color-text-secondary);
-        }
-        .project-item.expanded .project-header ion-icon {
-            transform: rotate(90deg);
-        }
-        .candidate-item:hover {
-            background-color: rgba(255, 255, 255, 0.05);
-        }
-        /* Style for the main candidate list item score */
-         .candidate-score {
-             min-width: 50px; /* Ensure space for score */
-             text-align: right;
-         }
+        #sidebar { width: 25%; min-width: 280px; max-width: 400px; height: 100vh; overflow-y: auto; flex-shrink: 0; background-color: #2B2E4A; border-right: 1px solid var(--color-border); }
+        #main-content { flex-grow: 1; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; }
+        .project-item { cursor: pointer; transition: background 0.2s; }
+        .candidate-item:hover { background-color: rgba(255, 255, 255, 0.05); }
+        .candidate-score { min-width: 50px; text-align: right; }
     </style>
 </head>
 <body class="text-gray-200 flex">
@@ -89,304 +26,254 @@
         <button id="new-project-btn" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-lg mb-4 flex items-center justify-center gap-2 text-sm">
             <ion-icon name="add-circle-outline"></ion-icon> New Project
         </button>
-        <input type="text" id="project-search" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Search projects...">
+        <input type="text" id="project-search" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Filter projects...">
         <div id="project-list" class="flex-grow space-y-1 overflow-y-auto">
             <p class="text-gray-400 text-sm p-2">Loading projects...</p>
         </div>
     </div>
 
     <div id="main-content">
-        <div id="welcome-message" class="text-center p-10">
-            <h2 class="text-3xl font-bold text-white mb-4">Welcome</h2>
-            <p class="text-lg text-gray-400">Select or create a project to begin analyzing candidates.</p>
+        
+        <div class="bg-gray-800 border-b border-gray-700 px-8 py-4 flex justify-between items-center sticky top-0 z-10">
+            <div class="flex-1 max-w-2xl">
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <ion-icon name="search-outline" class="text-gray-400"></ion-icon>
+                    </div>
+                    <input type="text" id="global-candidate-search" class="block w-full pl-10 pr-3 py-2 border border-gray-600 rounded-lg leading-5 bg-gray-900 text-gray-300 placeholder-gray-500 focus:outline-none focus:bg-gray-800 focus:border-sky-500 focus:ring-1 focus:ring-sky-500 sm:text-sm" placeholder="Search candidate in this project...">
+                </div>
+            </div>
+            <div class="ml-4 flex items-center text-sm text-gray-400">
+                <ion-icon name="person-circle-outline" class="text-2xl mr-2"></ion-icon>
+                <span>Admin</span>
+            </div>
         </div>
 
-        <div id="create-project-form" class="hidden glass-card p-6 rounded-2xl shadow-xl max-w-3xl mx-auto">
-             <h2 class="text-2xl font-bold text-white mb-6">Create New Project</h2>
-             <div class="space-y-4">
-                 <div><label for="project-name" class="block text-sm font-medium text-gray-300 mb-1">Project Name</label><input type="text" id="project-name" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="e.g., Software Engineer II"></div>
-                 <div><label for="project-jd" class="block text-sm font-medium text-gray-300 mb-1">Job Description</label><textarea id="project-jd" rows="12" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Paste the full job description..."></textarea></div>
-                 <div class="flex justify-end gap-3"><button id="cancel-project-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg text-sm">Cancel</button><button id="save-project-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-6 rounded-lg text-sm">Save Project</button></div>
-                 <div id="project-error-message" class="text-red-400 text-sm mt-2 hidden"></div>
-             </div>
-        </div>
+        <div class="flex-grow p-8 overflow-y-auto">
 
-        <div id="analyze-candidate-section" class="hidden">
-             <h2 id="project-title-display" class="text-3xl font-bold text-white mb-6">Analyze Candidate</h2>
+            <div id="welcome-message" class="text-center p-10">
+                <h2 class="text-3xl font-bold text-white mb-4">Welcome</h2>
+                <p class="text-lg text-gray-400">Select a project from the sidebar to manage candidates.</p>
+            </div>
 
-             <div class="glass-card p-6 rounded-2xl shadow-xl mb-6 max-w-3xl mx-auto">
-                <h3 class="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">Add New Candidate</h3>
+            <div id="create-project-form" class="hidden glass-card p-6 rounded-2xl shadow-xl max-w-3xl mx-auto">
+                <h2 class="text-2xl font-bold text-white mb-6">Create New Project</h2>
                 <div class="space-y-4">
-                    <div><label for="username-input" class="block text-sm font-medium text-gray-300 mb-1">GitHub Username</label><input type="text" id="username-input" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="github_username"></div>
-                    <div><label for="resume-file" class="block text-sm font-medium text-gray-300 mb-1">Resume (PDF) <span class="text-red-400">*</span></label><input type="file" id="resume-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer"></div>
-                    <div><label for="linkedin-file" class="block text-sm font-medium text-gray-300 mb-1">LinkedIn (PDF) - Optional</label><input type="file" id="linkedin-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer" aria-describedby="linkedin-help"><p id="linkedin-help" class="mt-1 text-xs text-gray-400">Profile > More > Save to PDF.</p></div>
-                    <button id="generate-button" data-project-id="" class="w-full bg-sky-500 hover:bg-sky-600 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2"><ion-icon name="analytics-outline" class="text-xl"></ion-icon> Analyze & Add Candidate</button>
+                    <div><label class="block text-sm font-medium text-gray-300 mb-1">Project Name</label><input type="text" id="project-name" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3"></div>
+                    <div><label class="block text-sm font-medium text-gray-300 mb-1">Job Description</label><textarea id="project-jd" rows="12" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-3"></textarea></div>
+                    <div class="flex justify-end gap-3"><button id="cancel-project-btn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg">Cancel</button><button id="save-project-btn" class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-6 rounded-lg">Save Project</button></div>
                 </div>
             </div>
 
-            <div id="candidate-list-section" class="mt-8 max-w-3xl mx-auto">
-                <h3 class="text-xl font-semibold text-white mb-4">Analyzed Candidates</h3>
-                <input type="text" id="candidate-search" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-3 py-2 mb-4 text-sm focus:outline-none focus:ring-2 focus:ring-sky-400" placeholder="Search by name or ID (#)...">
-                <div id="candidate-list" class="space-y-2">
-                    <p class="text-gray-400 text-sm">Loading candidates...</p>
-                </div>
-            </div>
-
-            <div id="result-container" class="mt-8 hidden max-w-5xl mx-auto"> <div id="loader" class="text-center p-8 glass-card rounded-2xl hidden"><svg class="animate-spin h-10 w-10 text-sky-400 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg><p class="mt-4 text-lg text-gray-300">Loading Report...</p></div>
-                <div id="error-message" class="text-red-400 bg-red-900/50 border border-red-700 p-4 rounded-lg text-center hidden"></div>
-                <div id="summary-output-card" class="glass-card rounded-2xl shadow-2xl overflow-hidden hidden">
-                    <div class="p-6">
-                        <h2 class="text-2xl font-bold text-white mb-6">Candidate Fit Report</h2>
-                        <div class="text-center mb-6"><div id="fit-score-circle" class="relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white rounded-full shadow-lg bg-gradient-to-br"></div><p class="mt-2 text-lg text-gray-300">Overall Fit Score</p></div>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="summary-output"></div>
+            <div id="project-dashboard" class="hidden">
+                <div class="flex justify-between items-end mb-6">
+                    <div>
+                        <h2 id="project-title-display" class="text-3xl font-bold text-white">Project Name</h2>
+                        <p class="text-gray-400 text-sm mt-1">Manage and analyze candidates for this role.</p>
                     </div>
                 </div>
+
+                <div class="glass-card p-6 rounded-2xl shadow-xl mb-8 max-w-4xl mx-auto">
+                    <h3 class="text-lg font-semibold text-white mb-4 border-b border-gray-700 pb-2">Analyze New Candidate</h3>
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div><label class="block text-sm font-medium text-gray-300 mb-1">GitHub Username</label><input type="text" id="username-input" class="w-full bg-gray-700 text-white border border-gray-600 rounded-lg px-4 py-2" placeholder="github_username"></div>
+                            <div><label class="block text-sm font-medium text-gray-300 mb-1">LinkedIn (Optional)</label><input type="file" id="linkedin-file" accept="application/pdf" class="w-full text-gray-300 file:mr-2 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer"></div>
+                        </div>
+                        <div><label class="block text-sm font-medium text-gray-300 mb-1">Resume (PDF) <span class="text-red-400">*</span></label><input type="file" id="resume-file" accept="application/pdf" class="w-full text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-700 file:text-sky-300 hover:file:bg-gray-600 border border-gray-600 rounded-lg cursor-pointer"></div>
+                        
+                        <button id="generate-button" data-project-id="" class="w-full bg-sky-600 hover:bg-sky-700 text-white font-bold py-3 px-8 rounded-lg transition-all duration-300 flex items-center justify-center gap-2 shadow-lg">
+                            <ion-icon name="analytics-outline" class="text-xl"></ion-icon> Run Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <div class="max-w-5xl mx-auto">
+                    <h3 class="text-xl font-semibold text-white mb-4">Candidate Pipeline</h3>
+                    <div id="candidate-list" class="space-y-2">
+                        </div>
+                </div>
             </div>
-        </div> </div> <script>
-        // --- Globals ---
+
+            <div id="global-loader" class="fixed inset-0 bg-black/80 backdrop-blur-sm hidden flex items-center justify-center z-50">
+                <div class="text-center">
+                    <svg class="animate-spin h-12 w-12 text-sky-500 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    <p class="text-xl text-white font-bold">Analyzing Candidate...</p>
+                    <p class="text-gray-400 mt-2">Fetching GitHub, Parsing Resume, Running AI Models...</p>
+                </div>
+            </div>
+            
+        </div>
+    </div>
+
+    <script>
         let projects = [];
-        let projectCandidates = {}; // { projectId: [candidate1, candidate2] }
         let currentProjectId = null;
-        let currentReportPath = null; // Track which report is being shown
 
-        // --- DOM Elements --- (All should be correct)
-        const newProjectBtn = document.getElementById('new-project-btn'); const projectSearch = document.getElementById('project-search'); const projectListDiv = document.getElementById('project-list'); const welcomeMessageDiv = document.getElementById('welcome-message'); const createProjectFormDiv = document.getElementById('create-project-form'); const analyzeCandidateSectionDiv = document.getElementById('analyze-candidate-section'); const candidateListSection = document.getElementById('candidate-list-section'); const candidateSearch = document.getElementById('candidate-search'); const candidateListDiv = document.getElementById('candidate-list'); const projectNameInput = document.getElementById('project-name'); const projectJdInput = document.getElementById('project-jd'); const cancelProjectBtn = document.getElementById('cancel-project-btn'); const saveProjectBtn = document.getElementById('save-project-btn'); const projectErrorMessage = document.getElementById('project-error-message'); const projectTitleDisplay = document.getElementById('project-title-display'); const usernameInput = document.getElementById('username-input'); const resumeFile = document.getElementById('resume-file'); const linkedinFile = document.getElementById('linkedin-file'); const generateButton = document.getElementById('generate-button'); const resultContainer = document.getElementById('result-container'); const loader = document.getElementById('loader'); const errorMessage = document.getElementById('error-message'); const summaryOutputCard = document.getElementById('summary-output-card'); const summaryOutput = document.getElementById('summary-output'); const fitScoreCircle = document.getElementById('fit-score-circle');
+        // Elements
+        const projectListDiv = document.getElementById('project-list');
+        const welcomeMessageDiv = document.getElementById('welcome-message');
+        const createProjectFormDiv = document.getElementById('create-project-form');
+        const projectDashboardDiv = document.getElementById('project-dashboard');
+        const candidateListDiv = document.getElementById('candidate-list');
+        const globalLoader = document.getElementById('global-loader');
+        
+        const projectNameInput = document.getElementById('project-name');
+        const projectJdInput = document.getElementById('project-jd');
+        const usernameInput = document.getElementById('username-input');
+        const resumeFile = document.getElementById('resume-file');
+        const linkedinFile = document.getElementById('linkedin-file');
+        const generateButton = document.getElementById('generate-button');
+        const projectSearch = document.getElementById('project-search');
+        const candidateSearch = document.getElementById('global-candidate-search');
 
-        // --- API Calls ---
+        function navigateToReport(reportPath, projectId, candidateId) {
+            window.location.href = `/report_view?path=${encodeURIComponent(reportPath)}&project_id=${projectId}&candidate_id=${candidateId}`;
+        }
+
         const fetchProjects = async () => {
              try {
-                const response = await fetch('/projects/'); if (!response.ok) throw new Error('Failed fetch');
+                const response = await fetch('/projects/');
+                if (!response.ok) throw new Error('Failed fetch');
                 projects = await response.json();
-                renderProjectList(); // Render projects first
-                await Promise.allSettled(projects.map(p => fetchCandidates(p.id, false)));
-                renderProjectList(); // Re-render with candidates
-             } catch (error) { console.error("Err fetch projects:", error); projectListDiv.innerHTML = '<p class="text-red-400">Error loading projects.</p>'; }
+                renderProjectList();
+                return projects; // Return for chaining
+             } catch (error) { console.error(error); }
         };
-        const saveNewProject = async () => {
-             const name=projectNameInput.value.trim(); const job_description=projectJdInput.value.trim(); if(!name || !job_description){showProjectError("Name & JD required.");return;} hideProjectError(); saveProjectBtn.disabled=true; saveProjectBtn.textContent='Saving...'; try{ const response=await fetch('/projects/',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,job_description}),}); if(!response.ok){const d=await response.json();throw new Error(d.detail||'Failed save');} await fetchProjects(); showWelcomeMessage(); projectNameInput.value=''; projectJdInput.value=''; } catch(error){showProjectError(error.message); console.error("Err save project:",error);} finally{saveProjectBtn.disabled=false; saveProjectBtn.textContent='Save Project';}
-        };
-        const fetchCandidates = async (projectId, showErrorInMain = true) => {
-            if (!projectId) return Promise.resolve(); // Return promise for Promise.allSettled
+
+        const fetchCandidates = async (projectId) => {
             try {
                 const response = await fetch(`/projects/${projectId}/candidates/`);
-                if (!response.ok) throw new Error(`Failed fetch candidates (Status: ${response.status})`);
-                projectCandidates[projectId] = await response.json();
-                 if (projectId === currentProjectId && showErrorInMain) { renderCandidateList(projectId); }
-                 renderProjectList();
-                 return Promise.resolve(); // Indicate success
+                if (!response.ok) throw new Error('Failed to fetch candidates');
+                const candidates = await response.json();
+                renderCandidateList(candidates);
             } catch (error) {
-                console.error(`Error fetching candidates for project ${projectId}:`, error);
-                 projectCandidates[projectId] = []; // Store empty list on error
-                if (projectId === currentProjectId && showErrorInMain) { candidateListDiv.innerHTML = '<p class="text-red-400 text-sm">Error loading candidates.</p>'; }
-                 renderProjectList();
-                 return Promise.reject(error); // Indicate failure
+                console.error(error);
+                candidateListDiv.innerHTML = '<p class="text-red-400 text-sm">Error loading candidates.</p>';
             }
         };
 
-        // --- UI Rendering ---
+        const saveNewProject = async () => {
+             const name = projectNameInput.value.trim();
+             const job_description = projectJdInput.value.trim();
+             if (!name || !job_description) return alert("Name & JD required");
+             try {
+                 await fetch('/projects/', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ name, job_description }), });
+                 await fetchProjects(); 
+                 showWelcome(); 
+                 projectNameInput.value = ''; 
+                 projectJdInput.value = '';
+             } catch(e) { alert("Error saving project"); }
+        };
+
+        const handleAnalyze = async () => {
+            const pid = generateButton.dataset.projectId;
+            const user = usernameInput.value.trim();
+            const res = resumeFile.files[0];
+            if (!user || !res) return alert("Username & Resume required");
+
+            globalLoader.classList.remove('hidden');
+
+            const fd = new FormData();
+            fd.append('username', user); fd.append('resume_file', res);
+            if (linkedinFile.files[0]) fd.append('linkedin_file', linkedinFile.files[0]);
+
+            try {
+                const resp = await fetch(`/projects/${pid}/summarize`, { method: 'POST', body: fd });
+                if (!resp.ok) { const err = await resp.json(); throw new Error(err.detail); }
+                const candidate = await resp.json();
+                navigateToReport(candidate.report_file_path, pid, candidate.id);
+            } catch (e) { alert("Analysis Failed: " + e.message); 
+            globalLoader.classList.add('hidden'); }
+        };
+
+        // Rendering
         const renderProjectList = () => {
-            const searchTerm = projectSearch.value.toLowerCase();
+            const term = projectSearch.value.toLowerCase();
             projectListDiv.innerHTML = '';
-            const filteredProjects = projects.filter(p => p.name.toLowerCase().includes(searchTerm));
-
-            if (filteredProjects.length === 0) {
-                 projectListDiv.innerHTML = '<p class="text-gray-400 text-sm p-2">No projects found.</p>'; return;
-            }
-
-            filteredProjects.forEach(project => {
-                const projectItem = document.createElement('div');
-                // --- MODIFIED: Add expanded class based on currentProjectId ---
-                projectItem.className = `project-item border-b border-gray-700 last:border-b-0 ${project.id === currentProjectId ? 'expanded' : ''}`;
-
-                // --- Project Header ---
-                const projectHeader = document.createElement('div');
-                 projectHeader.className = `project-header p-2 rounded-lg cursor-pointer hover:bg-gray-700 text-sm flex justify-between items-center ${project.id === currentProjectId ? 'selected-project' : ''}`;
-                 projectHeader.dataset.projectId = project.id;
-                 projectHeader.onclick = () => selectProject(project.id); // Click header selects project
-                const projectNameSpan = document.createElement('span'); projectNameSpan.textContent = project.name; projectHeader.appendChild(projectNameSpan);
-                const expandIcon = document.createElement('ion-icon'); expandIcon.setAttribute('name', 'chevron-forward-outline'); expandIcon.classList.add('text-xs'); projectHeader.appendChild(expandIcon);
-                projectItem.appendChild(projectHeader);
-
-                // --- Candidate Sublist ---
-                const candidatesSublistDiv = document.createElement('div');
-                candidatesSublistDiv.className = 'project-candidates ml-4 border-l border-gray-700 pl-2 py-1 space-y-1';
-                const candidates = projectCandidates[project.id];
-
-                if (candidates) { // Only render if candidates have been fetched (or fetch failed resulting in [])
-                    if (candidates.length > 0) {
-                        // Backend sorts by score
-                        candidates.forEach(candidate => {
-                            const candidateLink = document.createElement('div');
-                            candidateLink.className = 'candidate-subitem text-gray-400 hover:text-sky-300 cursor-pointer py-0.5 truncate';
-                            const scoreText = candidate.fit_score !== null ? `${candidate.fit_score}%` : 'N/A';
-                            const displayText = `${candidate.github_username} (#${candidate.unique_id}) ${scoreText}`;
-                            candidateLink.textContent = displayText;
-                            candidateLink.title = displayText;
-                            candidateLink.onclick = (e) => {
-                                e.stopPropagation();
-                                if (currentProjectId !== project.id) { selectProject(project.id); }
-                                // Use setTimeout to allow UI to update (project selection) before fetching/scrolling
-                                setTimeout(() => viewCandidateReport(candidate.report_file_path), 50);
-                            };
-                            candidatesSublistDiv.appendChild(candidateLink);
-                        });
-                    } else {
-                         const noCandidatesText = document.createElement('div'); noCandidatesText.className = 'candidate-subitem text-gray-500 italic'; noCandidatesText.textContent = 'No candidates analyzed'; candidatesSublistDiv.appendChild(noCandidatesText);
-                    }
-                } // Implicit else: Don't show anything while loading initially
-
-                projectItem.appendChild(candidatesSublistDiv);
-                projectListDiv.appendChild(projectItem);
+            const filtered = projects.filter(p => p.name.toLowerCase().includes(term));
+            filtered.forEach(p => {
+                const div = document.createElement('div');
+                div.className = `p-3 rounded-lg cursor-pointer hover:bg-gray-700 text-sm mb-1 transition-colors ${p.id === currentProjectId ? 'bg-gray-700 border-l-4 border-sky-500' : ''}`;
+                div.textContent = p.name;
+                div.onclick = () => selectProject(p);
+                projectListDiv.appendChild(div);
             });
         };
 
-        const renderCandidateList = (projectId) => {
-             const candidates = projectCandidates[projectId] || [];
-             const searchTerm = candidateSearch.value.toLowerCase().trim();
-             candidateListDiv.innerHTML = '';
+        const renderCandidateList = (candidates) => {
+            candidateListDiv.innerHTML = '';
+            if (candidates.length === 0) { candidateListDiv.innerHTML = '<p class="text-gray-500 italic">No candidates analyzed yet.</p>'; return; }
+            const term = candidateSearch.value.toLowerCase();
+            const filtered = candidates.filter(c => c.github_username.toLowerCase().includes(term) || c.unique_id.includes(term));
 
-             const filteredCandidates = candidates.filter(c =>
-                 c.github_username.toLowerCase().includes(searchTerm) ||
-                 c.unique_id.toLowerCase().includes(searchTerm) ||
-                 searchTerm === ''
-             );
-
-            if (filteredCandidates.length === 0) {
-                candidateListDiv.innerHTML = `<p class="text-gray-400 text-sm">${searchTerm ? 'No matching candidates found.' : 'No candidates analyzed yet.'}</p>`;
-                return;
-            }
-
-            filteredCandidates.forEach(candidate => {
-                const candidateDiv = document.createElement('div');
-                // --- MODIFIED: Add highlighting for currently viewed report ---
-                candidateDiv.className = `glass-card p-3 rounded-lg flex justify-between items-center text-sm hover:bg-gray-700 cursor-pointer candidate-item ${candidate.report_file_path === currentReportPath ? 'selected-project' : ''}`; // Reuse selected style
-                candidateDiv.dataset.reportPath = candidate.report_file_path;
-                candidateDiv.onclick = () => viewCandidateReport(candidate.report_file_path);
-
-                const infoDiv = document.createElement('div');
-                const nameSpan = document.createElement('span'); nameSpan.textContent = candidate.github_username; infoDiv.appendChild(nameSpan);
-                const idSpan = document.createElement('span'); idSpan.className = 'text-xs text-gray-500 ml-2'; idSpan.textContent = `(#${candidate.unique_id})`; infoDiv.appendChild(idSpan);
-                candidateDiv.appendChild(infoDiv);
-
-                const scoreSpan = document.createElement('span');
-                 scoreSpan.className = `candidate-score font-semibold ${candidate.fit_score >= 75 ? 'text-green-400' : candidate.fit_score >= 50 ? 'text-yellow-400' : 'text-red-400'}`;
-                scoreSpan.textContent = `${candidate.fit_score !== null ? candidate.fit_score + '%' : 'N/A'}`;
-                candidateDiv.appendChild(scoreSpan);
-
-                candidateListDiv.appendChild(candidateDiv);
+            filtered.forEach(c => {
+                const div = document.createElement('div');
+                div.className = 'glass-card p-4 rounded-lg flex justify-between items-center hover:bg-gray-800 transition-colors cursor-pointer group';
+                div.onclick = () => navigateToReport(c.report_file_path, c.project_id, c.id);
+                const left = document.createElement('div');
+                left.innerHTML = `<p class="font-semibold text-white group-hover:text-sky-400 transition-colors">${c.github_username}</p><p class="text-xs text-gray-500">ID: #${c.unique_id}</p>`;
+                const right = document.createElement('div');
+                const score = c.final_score || 0;
+                let color = score >= 75 ? 'text-green-400' : score >= 50 ? 'text-yellow-400' : 'text-red-400';
+                right.innerHTML = `<span class="text-xl font-bold ${color}">${score}%</span>`;
+                div.appendChild(left); div.appendChild(right);
+                candidateListDiv.appendChild(div);
             });
         };
 
-        // --- Report Viewing ---
-        const viewCandidateReport = async (reportPath) => {
-            // Prevent re-fetching if already showing this report
-            if (currentReportPath === reportPath && !summaryOutputCard.classList.contains('hidden')) return;
-
-            console.log("Attempting view report:", reportPath);
-            currentReportPath = reportPath; // Store path of report being viewed
-            resultContainer.classList.remove('hidden'); loader.classList.remove('hidden');
-            errorMessage.classList.add('hidden'); summaryOutputCard.classList.add('hidden');
-            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            renderCandidateList(currentProjectId); // Re-render main list to highlight selection
-
-            try {
-                 if (!reportPath || typeof reportPath !== 'string') { throw new Error("Invalid report path."); }
-                const reportsBase = "generated_reports/"; const relativePathIndex = reportPath.indexOf(reportsBase);
-                if (relativePathIndex === -1) { console.error("Path missing marker:", reportPath); throw new Error("Cannot construct URL."); }
-                const relativeReportPath = reportPath.substring(relativePathIndex + reportsBase.length);
-                const reportUrl = `/reports/${relativeReportPath.replace(/^\/+/, '')}`;
-
-                console.log("Fetching report URL:", reportUrl);
-                const reportResponse = await fetch(reportUrl);
-                 if (!reportResponse.ok) { console.error("Fetch error:", reportResponse.status, reportResponse.statusText, "URL:", reportUrl); throw new Error(`Failed fetch report (Status: ${reportResponse.status})`); }
-                 const reportData = await reportResponse.json();
-                 displaySummary(reportData);
-            } catch(error) { showError(error.message); console.error("Error viewing report:", error); currentReportPath = null; renderCandidateList(currentProjectId); /* Unhighlight */ } // Clear path on error
-            finally { loader.classList.add('hidden'); }
-         };
-
-        // --- UI State Management ---
-        const showWelcomeMessage = () => { welcomeMessageDiv.classList.remove('hidden'); createProjectFormDiv.classList.add('hidden'); analyzeCandidateSectionDiv.classList.add('hidden'); currentProjectId = null; currentReportPath = null; renderProjectList(); };
-        const showCreateProjectForm = () => { welcomeMessageDiv.classList.add('hidden'); createProjectFormDiv.classList.remove('hidden'); analyzeCandidateSectionDiv.classList.add('hidden'); currentProjectId = null; currentReportPath = null; renderProjectList(); hideProjectError(); };
-        const showAnalyzeCandidateForm = (projectId) => {
-             const project = projects.find(p => p.id === projectId); if (!project) return;
-             const needsFetch = !projectCandidates[projectId];
-
-             currentProjectId = projectId;
-             currentReportPath = null; // Clear viewed report when switching projects
-             welcomeMessageDiv.classList.add('hidden'); createProjectFormDiv.classList.add('hidden'); analyzeCandidateSectionDiv.classList.remove('hidden');
-             projectTitleDisplay.textContent = `Analyze Candidate for ${project.name}`;
-             generateButton.dataset.projectId = projectId;
-
-             usernameInput.value=''; resumeFile.value=''; linkedinFile.value='';
-             resultContainer.classList.add('hidden'); errorMessage.classList.add('hidden'); summaryOutputCard.classList.add('hidden');
-             candidateSearch.value = '';
-
-             renderProjectList(); // Update sidebar highlights & expand
-
-             renderCandidateList(projectId); // Render main list (shows loading if needed)
-             if (needsFetch) {
-                 fetchCandidates(projectId); // Fetch in background
-             }
+        // Views
+        const showWelcome = () => 
+        { 
+            welcomeMessageDiv.classList.remove('hidden'); 
+            createProjectFormDiv.classList.add('hidden'); 
+            projectDashboardDiv.classList.add('hidden'); 
+            currentProjectId = null; renderProjectList(); 
         };
-        const showProjectError = (message) => { projectErrorMessage.textContent=`Error: ${message}`; projectErrorMessage.classList.remove('hidden'); };
-        const hideProjectError = () => { projectErrorMessage.classList.add('hidden'); };
-
-        // --- Event Handlers ---
-        const selectProject = (projectId) => {
-             // If already selected, maybe just toggle expansion? For now, just show it.
-             showAnalyzeCandidateForm(projectId);
+        
+        const selectProject = (project) => {
+            currentProjectId = project.id;
+            welcomeMessageDiv.classList.add('hidden'); 
+            createProjectFormDiv.classList.add('hidden'); 
+            projectDashboardDiv.classList.remove('hidden');
+            document.getElementById('project-title-display').textContent = project.name;
+            generateButton.dataset.projectId = project.id;
+            usernameInput.value = ''; resumeFile.value = ''; 
+            linkedinFile.value = '';
+            renderProjectList();
+            fetchCandidates(project.id);
         };
 
-        // --- Candidate Analysis Logic ---
-        const cleanUsername = (input) => { try { if (input.startsWith('http') || input.includes('github.com')) { const url = new URL(input); return url.pathname.split('/')[1]; } } catch (error) {} return input.trim().split('/')[0]; };
-        const handleGenerateClick = async () => {
-            const projectId = generateButton.dataset.projectId; if (!projectId) {showError("No project.");return;}
-            const rawInput=usernameInput.value; const username=cleanUsername(rawInput);
-            const resFile=resumeFile.files[0]; const liFile=linkedinFile.files[0];
-            if(!username||!resFile){showError("Username & Resume required.");return;}
-            if(resFile.type!=="application/pdf"||(liFile&&liFile.type!=="application/pdf")){showError("Files must be PDF.");return;}
-
-            generateButton.disabled = true; generateButton.innerHTML = `<ion-icon name="ellipsis-horizontal-outline" class="text-xl animate-pulse"></ion-icon> Analyzing...`;
-            resultContainer.classList.remove('hidden'); loader.classList.remove('hidden');
-            errorMessage.classList.add('hidden'); summaryOutputCard.classList.add('hidden');
-            summaryOutput.innerHTML = '';
-            currentReportPath = null; // Clear viewed report before generating new
-            resultContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
-            const formData = new FormData(); formData.append('username', username); formData.append('resume_file', resFile); if (liFile) {formData.append('linkedin_file', liFile);}
-
-            try {
-                const response = await fetch(`/projects/${projectId}/summarize`, { method: 'POST', body: formData });
-                if (!response.ok) { const d = await response.json(); throw new Error(d.detail || `HTTP error! ${response.status}`); }
-                const candidateData = await response.json(); console.log("Candidate created/updated:", candidateData);
-
-                // Fetch candidates *first* to update the lists immediately
-                await fetchCandidates(projectId);
-
-                // Then view the report for the *just created/updated* candidate
-                await viewCandidateReport(candidateData.report_file_path); // This will also highlight the row
-
-            } catch (error) { showError(error.message); console.error("Analysis Error:", error); loader.classList.add('hidden'); currentReportPath = null; /* Clear highlight on error */ renderCandidateList(projectId); }
-            finally { generateButton.disabled = false; generateButton.innerHTML = '<ion-icon name="analytics-outline" class="text-xl"></ion-icon> Analyze Candidate Fit'; }
+        document.getElementById('new-project-btn').onclick = () => 
+        { 
+            welcomeMessageDiv.classList.add('hidden'); 
+            projectDashboardDiv.classList.add('hidden'); 
+            createProjectFormDiv.classList.remove('hidden'); 
+            currentProjectId = null; renderProjectList(); 
         };
-        const showError = (message) => { errorMessage.textContent=`Error: ${message}`; errorMessage.classList.remove('hidden'); summaryOutputCard.classList.add('hidden'); loader.classList.add('hidden');};
-        // --- displaySummary (Unchanged) ---
-        const displaySummary = (data) => {
-            summaryOutput.innerHTML = ''; fitScoreCircle.innerHTML = `${data.fit_score||0}%`; fitScoreCircle.className = 'relative w-32 h-32 mx-auto flex items-center justify-center text-4xl font-bold text-white rounded-full shadow-lg bg-gradient-to-br'; if(data.fit_score<50){fitScoreCircle.classList.add('from-red-500','to-red-700');}else if(data.fit_score<75){fitScoreCircle.classList.add('from-yellow-500','to-yellow-700');}else{fitScoreCircle.classList.add('from-sky-500','to-sky-700');} const createList=(items,color='text-gray-300')=>{if(!items||items.length===0)return'<p class="text-gray-400">N/A</p>';return`<ul class="list-disc list-inside ${color} space-y-1">${items.map(item=>`<li class="ml-4">${item}</li>`).join('')}</ul>`;}; const createSection=(title,icon,content,fullWidth=false)=>{return`<div class="report-section ${fullWidth?'md:col-span-2':''} glass-card p-4 rounded-lg"><h3 class="flex items-center gap-2 text-lg font-semibold mb-2"><ion-icon name="${icon}"></ion-icon>${title}</h3><div class="output-section-content">${content}</div></div>`;}; summaryOutput.innerHTML+=createSection('Overall Summary','person-circle-outline',`<p class="text-gray-300 whitespace-pre-wrap">${data.summary||'No summary.'}</p>`,true); summaryOutput.innerHTML+=createSection('Role Strengths','shield-checkmark-outline',createList(data.role_strengths,'text-green-300')); summaryOutput.innerHTML+=createSection('Role Weaknesses','trending-down-outline',createList(data.role_weaknesses,'text-yellow-300')); summaryOutput.innerHTML+=createSection('Red Flags','flag-outline',createList(data.red_flags,'text-red-300')); summaryOutput.innerHTML+=createSection('Suggested Interview Questions','chatbubble-ellipses-outline',createList(data.interview_questions)); summaryOutputCard.classList.remove('hidden'); errorMessage.classList.add('hidden');
+        document.getElementById('cancel-project-btn').onclick = showWelcome;
+        document.getElementById('save-project-btn').onclick = saveNewProject;
+        generateButton.onclick = handleAnalyze;
+        projectSearch.oninput = renderProjectList;
+        candidateSearch.oninput = () => { 
+            if(currentProjectId) fetchCandidates(currentProjectId); 
         };
 
-        // --- Initial Load ---
-        document.addEventListener('DOMContentLoaded', () => {
-            fetchProjects(); showWelcomeMessage();
-            newProjectBtn.addEventListener('click', showCreateProjectForm);
-            cancelProjectBtn.addEventListener('click', showWelcomeMessage);
-            saveProjectBtn.addEventListener('click', saveNewProject);
-            generateButton.addEventListener('click', handleGenerateClick);
-            projectSearch.addEventListener('input', renderProjectList);
-            candidateSearch.addEventListener('input', () => renderCandidateList(currentProjectId));
+        // Initialization Logic to Handle "Back" Navigation
+        document.addEventListener('DOMContentLoaded', async () => {
+            const allProjects = await fetchProjects();
+            
+            // Check URL params for project_id
+            const params = new URLSearchParams(window.location.search);
+            const pid = params.get('project_id');
+            
+            if (pid && allProjects) {
+                const proj = allProjects.find(p => p.id == pid);
+                if (proj) {
+                    selectProject(proj);
+                }
+            }
         });
-
     </script>
 </body>
 </html>

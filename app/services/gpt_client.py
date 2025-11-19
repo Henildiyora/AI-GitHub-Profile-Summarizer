@@ -3,12 +3,11 @@ import openai
 import json
 from typing import Dict, Any, Optional
 
-from app.llm_client import SYSTEM_PROMPT 
+from app.services.llm_client import SYSTEM_PROMPT 
 
 class GPTClient:
     """
     A client for interacting with the OpenAI API (GPT models).
-    Uses your free-tier API key.
     """
 
     def __init__(self):
@@ -34,6 +33,15 @@ class GPTClient:
         ) -> Dict[str, Any]:
         """
         Generates a structured JSON fit report using the OpenAI API.
+        Args:
+            profile (dict): GitHub user profile data.
+            repos (list): List of GitHub repository data.
+            readmes (dict): Dictionary of README contents keyed by repo name.
+            job_description (str): Job description text.
+            resume_text (str): Candidate resume text.
+            linkedin_text (Optional[str]): Candidate LinkedIn profile text.
+        Returns:
+            Dict[str, Any]: Generated fit report as a dictionary.
         """
         if not self.client:
             return {"error": "OpenAI API is not configured. Check your OPENAI_API_KEY."}

@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual Environment
+github_summarizer_venv/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# Secrets - Do NOT include in the image
+.env
+database.db
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store

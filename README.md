@@ -6,18 +6,17 @@ It analyzes a candidate's GitHub profile, Resume (PDF), and LinkedIn profile (PD
 
 ## 📸 Application Screenshots
 
-### 1. Dashboard & Analysis Input
-*The main interface where you input the candidate's details and the job description.*
-![Dashboard Screenshot](path/to/your/dashboard_screenshot.jpg)
+### 1. Project Dashboard
+Manage multiple hiring pipelines with a clear, searchable sidebar.
+![Dashboard Screenshot](deshboard_images/dashboard.png)
 
-### 2. Generated Candidate Report
-*The comprehensive analysis showing the Fit Score, Summary, and Evidence.*
-![Report Screenshot](path/to/your/report_screenshot.jpg)
+### 2. Hybrid Analysis Report
+A comprehensive report showing the blended Fit Score, Confidence Level, and detailed evidence.
+![Report Screenshot](deshboard_images/report.png)
 
-### 3. PDF Download Option
-*Exporting the analysis as a professional PDF report.*
-![PDF Download Screenshot](path/to/your/pdf_download_screenshot.jpg)
-
+### 3. PDF Export
+Download professional, shareable PDF reports for hiring managers.
+![PDF Download Screenshot](deshboard_images/pdf_export.png)
 
 ## 🏗️ System Architecture & Workflow
 
@@ -138,3 +137,11 @@ The system combines the math and the AI judgment into a final result:
 
 ### Access the Dashboard
 Open `http://127.0.0.1:8000` in your browser.
+
+
+
+
+
+
+
+
