@@ -8,15 +8,15 @@ It analyzes a candidate's GitHub profile, Resume (PDF), and LinkedIn profile (PD
 
 1.  **UI Dashboard**
     *Manage multiple hiring pipelines with a clear, searchable sidebar.*
-    ![Dashboard Screenshot](dashboard_images/UI.png)
+    ![Dashboard Screenshot](deshboard_images/UI.png)
 
 2.  **Project Dashboard**
     *A comprehensive report showing the blended Fit Score, Confidence Level, and detailed evidence.*
-    ![Report Screenshot](dashboard_images/project.png)
+    ![Report Screenshot](deshboard_images/project.png)
 
 3.  **Hybrid Analysis Report**
     *Download professional, shareable PDF reports for hiring managers.*
-    ![PDF Download Screenshot](dashboard_images/report.png)
+    ![PDF Download Screenshot](deshboard_images/report.png)
 
 ## 🧠 How It Works: The Hybrid Scoring Engine
 
