@@ -1,4 +1,4 @@
-# AI Candidate Screener (Pro Dashboard)
+AI Candidate Screener (Pro Dashboard)
 
 An intelligent, evidence-based hiring platform for technical recruiters. This tool goes beyond simple keyword matching by using a Hybrid Scoring Engine that combines objective quantitative metrics with qualitative AI analysis to generate defensible, explainable candidate reports.
 
@@ -6,61 +6,24 @@ It analyzes a candidate's GitHub profile, Resume (PDF), and LinkedIn profile (PD
 
 ## 📸 Application Screenshots
 
-### 1. Project Dashboard
-Manage multiple hiring pipelines with a clear, searchable sidebar.
-![Dashboard Screenshot](deshboard_images/dashboard.png)
+1.  **Project Dashboard**
+    *Manage multiple hiring pipelines with a clear, searchable sidebar.*
+    ![Dashboard Screenshot](deshboard_images/UI.png)
 
-### 2. Hybrid Analysis Report
-A comprehensive report showing the blended Fit Score, Confidence Level, and detailed evidence.
-![Report Screenshot](deshboard_images/report.png)
+2.  **Hybrid Analysis Report**
+    *A comprehensive report showing the blended Fit Score, Confidence Level, and detailed evidence.*
+    ![Report Screenshot](deshboard_images/report.png)
 
-### 3. PDF Export
-Download professional, shareable PDF reports for hiring managers.
-![PDF Download Screenshot](deshboard_images/pdf_export.png)
+3.  **PDF Export**
+    *Download professional, shareable PDF reports for hiring managers.*
+    ![PDF Download Screenshot](deshboard_images/pdf_export.png)
 
-## 🏗️ System Architecture & Workflow
+## 🧠 How It Works: The Hybrid Scoring Engine
 
-This application follows a streamlined **ETL (Extract, Transform, Load)** process powered by Generative AI. Here is how it turns raw data into a fit report:
-
-```mermaid
-graph TD
-    subgraph Inputs
-        A[Job Description]
-        B[GitHub Username]
-        C[Resume PDF]
-        D[LinkedIn PDF]
-    end
-
-    subgraph Backend Processing (FastAPI)
-        E[Data Extraction Layer]
-        E1[Fetch GitHub Profile & Repos]
-        E2[Parse PDF Text]
-        
-        F[Context Construction]
-        F1[Combine JD + Resume + GitHub Data]
-        
-        G[AI Analysis Engine]
-        G1[Send to Google Gemini LLM]
-        G2[Analyze Fit & Generate Insights]
-    end
-
-    subgraph Output
-        H[Candidate Fit Report]
-        H1[Fit Score (0-100)]
-        H2[Strengths & Weaknesses]
-        H3[Interview Questions]
-    end
-
-    A --> F1
-    B --> E1 --> F1
-    C --> E2 --> F1
-    D --> E2 --> F1
-    F1 --> G1 --> G2 --> H
-
-### 🧠 How It Works: The Hybrid Scoring Engine
 This application implements a sophisticated Quantitative + Qualitative (Plan 2 + Plan 5) architecture. It doesn't just ask an AI "is this person good?" Instead, it runs a multi-step pipeline to verify claims and calculate a defensible score.
 
-#### Phase 1: Quantitative Analysis (The Math)
+### Phase 1: Quantitative Analysis (The Math)
+
 Before any AI is involved, the system runs 4 deterministic Python modules to calculate a "Base Score" (0-100) based on hard data:
 
 *   **Technical Skills Match (40% Weight):**
@@ -76,7 +39,8 @@ Before any AI is involved, the system runs 4 deterministic Python modules to cal
     *   **Logic:** extracts domain-specific jargon (e.g., "FinTech", "Healthcare", "Computer Vision") from the JD and scans for their presence in the candidate's profile.
     *   **Goal:** Checks for industry-specific knowledge.
 
-#### Phase 2: Qualitative Analysis (The AI)
+### Phase 2: Qualitative Analysis (The AI)
+
 The raw data and the calculated quantitative metrics are sent to Google Gemini 2.5 Pro. The AI acts as a "Senior Technical Recruiter" to perform Explainable AI (XAI) analysis:
 
 *   **Contextual Review:** It reads the Resume and GitHub READMEs to understand how skills were applied, not just if they were listed.
@@ -85,26 +49,32 @@ The raw data and the calculated quantitative metrics are sent to Google Gemini 2
     *   **Negative Adjustment:** Applied for "Red Flags" (e.g., resume fluff, claims of expertise with no GitHub evidence).
 *   **Evidence Generation:** It generates lists of Strong Evidence, Weak Areas, and Missing Skills to justify its reasoning.
 
-#### Phase 3: The Final Blended Score
+### Phase 3: The Final Blended Score
+
 The system combines the math and the AI judgment into a final result:
-`Final Score = (Base Quantitative Score) + (AI Adjustment)`
+
+$$\text{Final Score} = (\text{Base Quantitative Score}) + (\text{AI Adjustment})$$
+
 *   **High Confidence:** If the Math and AI agree.
 *   **Low Confidence:** If the AI significantly disagrees with the Math (flagging a potential anomaly for human review).
 
-### ✨ Key Features
+## ✨ Key Features
+
 *   **Dashboard Interface:** A professional sidebar navigation to manage multiple job descriptions ("Projects") and their respective candidate pools.
 *   **Search & Sort:** Instantly filter candidates by name, ID, or Fit Score to find top talent.
 *   **Evidence-Based Reporting:** Every score is backed by specific evidence (e.g., "Claimed Python expert but has 0 Python repos").
 *   **PDF Export:** Generate a single PDF that combines the AI analysis, the original Resume, and the LinkedIn profile into one document.
 *   **Smart Caching:** Analysis results are hashed and cached. Re-opening a candidate's report is instant and costs $0 in API fees.
 
-### 🛠️ Tech Stack
+## 🛠️ Tech Stack
+
 *   **Backend:** Python, FastAPI, SQLModel (SQLite)
 *   **Frontend:** HTML5, Tailwind CSS, Vanilla JavaScript
 *   **AI Model:** Google Gemini 2.5 Pro
 *   **Data Processing:** pypdf (PDF Parsing), fpdf2 (PDF Generation), httpx (Async API)
 
-### 🚀 Setup & Installation
+## 🚀 Setup & Installation
+
 1.  **Clone the repository:**
     ```bash
     git clone <repository-url>
@@ -135,12 +105,5 @@ The system combines the math and the AI judgment into a final result:
     uvicorn main:app --reload
     ```
 
-### Access the Dashboard
-Open `http://127.0.0.1:8000` in your browser.
-
-
-
-
-
-
-
+6.  **Access the Dashboard:**
+    Open `http://127.0.0.1:8000` in your browser.
