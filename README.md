@@ -1,4 +1,4 @@
-AI Candidate Screener (Pro Dashboard)
+AI Candidate Screener
 
 An intelligent, evidence-based hiring platform for technical recruiters. This tool goes beyond simple keyword matching by using a Hybrid Scoring Engine that combines objective quantitative metrics with qualitative AI analysis to generate defensible, explainable candidate reports.
 
@@ -21,7 +21,7 @@ This application implements a sophisticated Quantitative + Qualitative (Plan 2 +
 
 ### Phase 1: Quantitative Analysis (The Math)
 
-Before any AI is involved, the system runs 4 deterministic Python modules to calculate a "Base Score" (0-100) based on hard data:
+Before any AI is involved, the system runs 4 deterministic Python modules to calculate a Base Score (0-100) based on hard data:
 
 *   **Technical Skills Match (40% Weight):**
 
@@ -67,7 +67,7 @@ $$\text{Final Score} = (\text{Base Quantitative Score}) + (\text{AI Adjustment})
 
 *   **Low Confidence:** If the AI significantly disagrees with the Math (flagging a potential anomaly for human review).
 
-## ✨ Key Features
+## Key Features
 
 *   **Dashboard Interface:** A professional sidebar navigation to manage multiple job descriptions ("Projects") and their respective candidate pools.
 
@@ -79,14 +79,14 @@ $$\text{Final Score} = (\text{Base Quantitative Score}) + (\text{AI Adjustment})
 
 *   **Smart Caching:** Analysis results are hashed and cached. Re-opening a candidate's report is instant and costs $0 in API fees.
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 *   **Backend:** Python, FastAPI, SQLModel (SQLite)
 *   **Frontend:** HTML5, Tailwind CSS, Vanilla JavaScript
 *   **AI Model:** Google Gemini 2.5 Pro
 *   **Data Processing:** pypdf (PDF Parsing), fpdf2 (PDF Generation), httpx (Async API)
 
-## 🚀 Setup & Installation
+## Setup & Installation
 
 1.  **Clone the repository:**
     ```bash
