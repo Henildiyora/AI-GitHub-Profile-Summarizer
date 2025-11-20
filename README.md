@@ -17,7 +17,7 @@ It analyzes a candidate's GitHub profile, Resume (PDF), and LinkedIn profile (PD
 
 ## How It Works: The Hybrid Scoring Engine
 
-This application implements a sophisticated Quantitative + Qualitative (Plan 2 + Plan 5) architecture. It doesn't just ask an AI "is this person good?" Instead, it runs a multi-step pipeline to verify claims and calculate a defensible score.
+This application implements a sophisticated Quantitative + Qualitative architecture. It doesn't just ask an AI "is this person good?" Instead, it runs a multi-step pipeline to verify claims and calculate a defensible score.
 
 ### Phase 1: Quantitative Analysis (The Math)
 
